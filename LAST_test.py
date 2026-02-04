@@ -120,7 +120,7 @@ def m_matrix(n, seed):
     np.fill_diagonal(A, diag_values)
     return A
 # ------------------------------------------------------------
-# compute w = A v exactly
+# compute w = A * v exactly
 def exact_rhs(A):
     n = A.shape[0]
     mp.mp.dps = 100  # high precision
