@@ -18,7 +18,31 @@ import scipy.linalg as la
 from scipy.linalg.lapack import get_lapack_funcs
 import sys
 import subprocess
-
+nb = 16  # block size
+n = 64  # matrix size
+num_sigmas = 12 # number of different sigma values to test (varying condition numbers)
+mp.mp.dps = 32 # set decimal places for mpmath to 32
+# ------------------------------------------------------------
+# Generate FEM matrix 
+def generate_fem_matrix(n, sigma, gamma=0):
+    h = 1.0 / (n + 1)
+    # Create tridiagonal matrix
+    A = np.diag(2 * np.ones(n)) + np.diag(-1 * np.ones(n-1), 1) + np.diag(-1 * np.ones(n-1), -1)
+    # Modify first and last diagonal entries
+    A[0, 0] = 1 + h * sigma
+    A[-1, -1] = 1 + h * sigma
+    # Create w 
+    w = np.zeros(n)
+    w[0] = h * sigma
+    w[-1] = h * sigma
+    # Create right-hand side b
+    grid = h * np.arange(1, n+1)
+    b = h * np.sin(np.pi * grid)
+    b[0] = b[0] / 2 - h * gamma
+    b[-1] = b[-1] / 2 + h * gamma
+    # v is ones vector for GTH
+    v = np.ones(n)
+    return A, v, w, b
 # ------------------------------------------------------------
 # Compile Fortran modules (we can change setting to compile once)
 def compile_fortran_modules():
@@ -109,27 +133,6 @@ def gth_python(A, v, w):
     return L, U
 
 # ------------------------------------------------------------
-# Generate FEM matrix 
-def generate_fem_matrix(n, sigma, gamma=0):
-    h = 1.0 / (n + 1)
-    # Create tridiagonal matrix
-    A = np.diag(2 * np.ones(n)) + np.diag(-1 * np.ones(n-1), 1) + np.diag(-1 * np.ones(n-1), -1)
-    # Modify first and last diagonal entries
-    A[0, 0] = 1 + h * sigma
-    A[-1, -1] = 1 + h * sigma
-    # Create w 
-    w = np.zeros(n)
-    w[0] = h * sigma
-    w[-1] = h * sigma
-    # Create right-hand side b
-    grid = h * np.arange(1, n+1)
-    b = h * np.sin(np.pi * grid)
-    b[0] = b[0] / 2 - h * gamma
-    b[-1] = b[-1] / 2 + h * gamma
-    # v is ones vector for GTH
-    v = np.ones(n)
-    return A, v, w, b
-# ------------------------------------------------------------
 # Solve LUx = b
 def solve_lu(L, U, b):
     y = la.solve_triangular(L, b, lower=True, check_finite=False)
@@ -195,7 +198,6 @@ def run_test_varying_condition(n, num_sigmas):
         A, v, w, b = generate_fem_matrix(n, sigma)
         
        
-        mp.mp.dps = 100
         A_mp = mp.matrix(A.tolist())
         v_mp = mp.matrix(v.reshape(-1, 1).tolist())  
         w_mp = mp.matrix(w.reshape(-1, 1).tolist())   
@@ -224,7 +226,7 @@ def run_test_varying_condition(n, num_sigmas):
         t_backslash = time.perf_counter() - t0
         err_backslash = float(rel_error(x_backslash, x_vpa))
         
-        # 2. DMMTF2 (GTH unblocked)
+        # 2. DMMTF2 (unblocked GTH)
         t0 = time.perf_counter()
         A_f = gth_fortran(A, v.copy(), w.copy(), dmmtf2)
         t_dmmtf2 = time.perf_counter() - t0
@@ -247,7 +249,6 @@ def run_test_varying_condition(n, num_sigmas):
         x_dgetf2 = la.solve_triangular(U, y, check_finite=False)
         err_dgetf2 = float(rel_error(x_dgetf2, x_vpa))
         
-        nb = 16  # block size for dmmtrf
 
         # 4. DMMTRF (blocked GTH using dmmtf2)
         t0 = time.perf_counter()
@@ -270,6 +271,7 @@ def run_test_varying_condition(n, num_sigmas):
         # 6. DGETRF (blocked LU)
         A_f = np.asfortranarray(A)
         dgetrf = get_lapack_funcs('getrf', (A_f,))
+        
         t0 = time.perf_counter()
         lu_rf, piv_rf, _ = dgetrf(A_f)
         t_dgetrf = time.perf_counter() - t0
@@ -294,13 +296,13 @@ def run_test_varying_condition(n, num_sigmas):
     
      
         print(f"{sigma:10.1e} {cond_A:12.2e} {skeel_cond:12.2e} "
-              f"{err_backslash:12.2e} {t_backslash:8.4f} "
-              f"{err_dmmtf2:12.2e} {t_dmmtf2:8.4f} "
-              f"{err_dgetf2:12.2e} {t_dgetf2:8.4f} "
-              f"{err_dmmtrf:12.2e} {t_dmmtrf:8.4f} "
-              f"{err_dmmtrff:12.2e} {t_dmmtrff:8.4f} "
-              f"{err_dgetrf:12.2e} {t_dgetrf:8.4f} "
-              f"{err_gth_p:12.2e} {t_gth_p:8.4f}")
+              f"{err_backslash:12.2e} {t_backslash*1000:8.4f} "
+              f"{err_dmmtf2:12.2e} {t_dmmtf2*1000:8.4f} "
+              f"{err_dgetf2:12.2e} {t_dgetf2*1000:8.4f} "
+              f"{err_dmmtrf:12.2e} {t_dmmtrf*1000:8.4f} "
+              f"{err_dmmtrff:12.2e} {t_dmmtrff*1000:8.4f} "
+              f"{err_dgetrf:12.2e} {t_dgetrf*1000:8.4f} "
+              f"{err_gth_p:12.2e} {t_gth_p*1000:8.4f}")
     
     create_plot(sigmas, cond_numbers, skeel_conds, errors_backslash, errors_dmmtf2, 
                 errors_dgetf2, errors_dmmtrf, errors_dmmtrff, errors_dgetrf, 
@@ -326,64 +328,57 @@ def run_test_varying_condition(n, num_sigmas):
 def create_plot(sigmas, cond_numbers, skeel_conds, errors_backslash, errors_dmmtf2,
                 errors_dgetf2, errors_dmmtrf, errors_dmmtrff, errors_dgetrf,
                 errors_gth_p, n):
-    try:
-        import matplotlib.pyplot as plt
-        
-        plt.figure(figsize=(12, 8))
-        
-        indices = np.arange(1, len(sigmas) + 1)
-        
-        plt.semilogy(indices, np.array(cond_numbers) * np.finfo(float).eps, '--', 
-                     linewidth=2, markersize=8, label='κ(A)·u')
-        
-        plt.semilogy(indices, np.array(skeel_conds) * np.finfo(float).eps, 'xr', 
-                     linewidth=1, markersize=6, label='skeel cond(A,x)')
-        
-     
-        plt.semilogy(indices, errors_backslash, 'sb', 
-                     linewidth=1, markersize=10, label='relerr-norm-backslash')
-        
-        plt.semilogy(indices, errors_dmmtf2, 'dc', 
-                     linewidth=2, markersize=8, label='relerr-norm-dmmtf2 (GTH)')
-        
-        plt.semilogy(indices, errors_dgetf2, '^g', 
-                     linewidth=1, markersize=8, label='relerr-norm-dgetf2')
-        
-        plt.semilogy(indices, errors_dmmtrf, 'vm', 
-                     linewidth=2, markersize=8, label='relerr-norm-dmmtrf (blocked GTH via dmmtrf2)')
-        
-        plt.semilogy(indices, errors_dmmtrff, '*y', 
-                     linewidth=2, markersize=10, label='relerr-norm-dmmtrff (blocked GTH via dmmtrf2)')
-        
-        plt.semilogy(indices, errors_dgetrf, '.r', 
-                     linewidth=4, markersize=8, label='relerr-norm-dgetrf')
-        
-        plt.semilogy(indices, errors_gth_p, 'ok', 
-                     linewidth=1, markersize=6, label='relerr-norm-GTH-Python')
-        
-        plt.xlabel('Index (decreasing σ)', fontsize=12)
-        plt.ylabel('Relative Error / Condition Bound', fontsize=12)
-        plt.title(f'{n}x{n} linear systems with FEM matrices, varying condition number', 
-                 fontsize=14, fontweight='bold')
-        
-        plt.legend(loc='best', fontsize=10)
-        
-        plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        
-        plt.savefig(f'fem_matrix_comparison_n{n}.png', dpi=300, bbox_inches='tight')
-        print(f"\nPlot saved as 'fem_matrix_comparison_n{n}.png'")
-        
-        plt.show()
-        
-    except ImportError:
-        print("\nMatplotlib not installed. Skipping plot generation.")
-        print("Install with: pip install matplotlib")
-    except Exception as e:
-        print(f"\nError creating plot: {e}")
+    import matplotlib.pyplot as plt
+    
+    plt.figure(figsize=(12, 8))
+    
+    indices = np.arange(1, len(sigmas) + 1)
+    
+    plt.semilogy(indices, np.array(cond_numbers) * np.finfo(float).eps, '--', 
+                    linewidth=2, markersize=8, label='κ(A)·u')
+    
+    plt.semilogy(indices, np.array(skeel_conds) * np.finfo(float).eps, 'xr', 
+                    linewidth=1, markersize=6, label='skeel cond(A,x)')
+    
+    
+    plt.semilogy(indices, errors_backslash, 'sb', 
+                    linewidth=1, markersize=10, label='relerr-norm-backslash')
+    
+    plt.semilogy(indices, errors_dmmtf2, 'dc', 
+                    linewidth=2, markersize=8, label='relerr-norm-dmmtf2 (GTH)')
+    
+    plt.semilogy(indices, errors_dgetf2, '^g', 
+                    linewidth=1, markersize=8, label='relerr-norm-dgetf2')
+    
+    plt.semilogy(indices, errors_dmmtrf, 'vm', 
+                    linewidth=2, markersize=8, label='relerr-norm-dmmtrf (blocked GTH via dmmtrf2)')
+    
+    plt.semilogy(indices, errors_dmmtrff, '*y', 
+                    linewidth=2, markersize=10, label='relerr-norm-dmmtrff (blocked GTH via dmmtrf2)')
+    
+    plt.semilogy(indices, errors_dgetrf, '.r', 
+                    linewidth=4, markersize=8, label='relerr-norm-dgetrf')
+    
+    plt.semilogy(indices, errors_gth_p, 'ok', 
+                    linewidth=1, markersize=6, label='relerr-norm-GTH-Python')
+    
+    plt.xlabel('Index (decreasing σ)', fontsize=12)
+    plt.ylabel('Relative Error / Condition Bound', fontsize=12)
+    plt.title(f'{n}x{n} linear systems with FEM matrices, varying condition number', 
+                fontsize=14, fontweight='bold')
+    
+    plt.legend(loc='best', fontsize=10)
+    
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    plt.savefig(f'fem_matrix_comparison_n{n}.png', dpi=300, bbox_inches='tight')
+    print(f"\nPlot saved as 'fem_matrix_comparison_n{n}.png'")
+    
+    plt.show()
 
 # ------------------------------------------------------------
 if __name__ == "__main__":
     compile_fortran_modules()
-    results = run_test_varying_condition(n=64, num_sigmas=12)
+    results = run_test_varying_condition(n, num_sigmas)
