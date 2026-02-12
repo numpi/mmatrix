@@ -18,6 +18,9 @@ import scipy.linalg as la
 from scipy.linalg.lapack import get_lapack_funcs
 import sys
 import subprocess
+
+from mmatrix import *
+
 nb = 16  # block size
 n = 64  # matrix size
 num_sigmas = 12 # number of different sigma values to test (varying condition numbers)
@@ -43,94 +46,6 @@ def generate_fem_matrix(n, sigma, gamma=0):
     # v is ones vector for GTH
     v = np.ones(n)
     return A, v, w, b
-# ------------------------------------------------------------
-# Compile Fortran modules (we can change setting to compile once)
-def compile_fortran_modules():
-    cmd = [sys.executable, "-m", "numpy.f2py", "-c", "dmmtrff.f",
-           "-m", "dmmtrff", "--fcompiler=gnu95", "-lopenblas"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        print("dmmtrff compilation failed:")
-        print(res.stderr)   
-    cmd = [sys.executable, "-m", "numpy.f2py", "-c", "dmmtf2.f",
-           "-m", "dmmtf2", "--fcompiler=gnu95", "-lopenblas"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        print("dmmtf2 compilation failed:")
-        print(res.stderr)
-    cmd = [sys.executable, "-m", "numpy.f2py", "-c", "dgetf2.f",
-           "-m", "dgetf2", "--fcompiler=gnu95", "-lopenblas"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        print("dgetf2 compilation failed:")
-        print(res.stderr)
-    cmd = [sys.executable, "-m", "numpy.f2py", "-c", 
-           "dmmtf2.f", "dmmtrf.f",  # Include both source files
-           "-m", "dmmtrf", 
-           "--fcompiler=gnu95", 
-           "-lopenblas"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        print("dmmtrf compilation failed:")
-        print(res.stderr)
-              
-# ------------------------------------------------------------
-# GTH Fortran  
-def gth_fortran(A, v, w, module):
-    m, n = A.shape
-    A_f = np.asfortranarray(A)
-    info = np.array(0, dtype=np.int32)
-    module.dmmtf2(m=m, n=n, a=A_f, lda=m, v=v, w=w, info=info)
-    return A_f
-
-# ------------------------------------------------------------
-# DGETF2 Fortran  
-def dgetf2_fortran(A, module):
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy())
-    ipiv = np.zeros(min(m, n), dtype=np.int32)
-    info = np.array(0, dtype=np.int32)
-    module.dgetf2(m=m, n=n, a=A_f, lda=m, ipiv=ipiv, info=info)
-    return A_f, ipiv, info[()]
-
-# ------------------------------------------------------------
-# DMMTRF Fortran via dmmtf2
-def dmmtrf_fortran(A, v, w, module, nb):
-    m, n = A.shape
-    A_f = np.asfortranarray(A)
-    info = np.array(0, dtype=np.int32)
-    nb_val = np.array(nb, dtype=np.int32)
-    work = np.zeros(nb, dtype=np.float64, order="F")
-    module.dmmtrf(m=m, n=n, a=A_f, lda=m, v=v, w=w, work=work, nb=nb_val, info=info)
-    return A_f
-
-# ------------------------------------------------------------
-# DMMTRF Fortran via dmmtrf2
-def dmmtrff_fortran(A, v, w, module, nb):
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy())
-    info = np.array(0, dtype=np.int32)
-    nb_val = np.array(nb, dtype=np.int32)
-    work_size = min(m, n)
-    work = np.zeros(work_size, dtype=np.float64, order="F")
-    module.dmmtrff(m=m, n=n, a=A_f, lda=m, v=v, w=w, work=work, nb=nb_val, info=info)
-    return A_f, info[()]
-
-# ------------------------------------------------------------
-# GTH Python  
-def gth_python(A, v, w):
-    n = A.shape[0]
-    L = np.eye(n)
-    U = A.copy()
-    for k in range(n - 1):
-        pivot = (w[k] - U[k, k+1:] @ v[k+1:]) / v[k]
-        U[k, k] = pivot
-        L[k+1:, k] = U[k+1:, k] / pivot
-        U[k+1:, k] = 0.0
-        w[k+1:] -= L[k+1:, k] * w[k]
-        U[k+1:, k+1:] -= np.outer(L[k+1:, k], U[k, k+1:])
-    U[-1, -1] = w[-1] / v[-1]
-    return L, U
 
 # ------------------------------------------------------------
 # Solve LUx = b
@@ -161,10 +76,6 @@ def skeel_condition_number(A, x_exact):
 # ------------------------------------------------------------
 # Main test with varying condition numbers
 def run_test_varying_condition(n, num_sigmas):
-    import dmmtf2
-    import dgetf2
-    import dmmtrf
-    import dmmtrff
     
     # Test different sigma values (varying condition numbers)
     sigmas = 10.0 ** (-np.arange(1, num_sigmas + 1))
@@ -228,7 +139,7 @@ def run_test_varying_condition(n, num_sigmas):
         
         # 2. DMMTF2 (unblocked GTH)
         t0 = time.perf_counter()
-        A_f = gth_fortran(A, v.copy(), w.copy(), dmmtf2)
+        A_f, _ = gth_fortran(A, v.copy(), w.copy())
         t_dmmtf2 = time.perf_counter() - t0
         Lf = np.tril(A_f, -1) + np.eye(n)
         Uf = np.triu(A_f)
@@ -237,7 +148,7 @@ def run_test_varying_condition(n, num_sigmas):
         
         # 3. DGETF2 (unblocked LU)
         t0 = time.perf_counter()
-        lu_f2, ipiv_f2, _ = dgetf2_fortran(A, dgetf2)
+        lu_f2, ipiv_f2, _ = dgetf2_fortran(A)
         t_dgetf2 = time.perf_counter() - t0
         L = np.tril(lu_f2, -1) + np.eye(n)
         U = np.triu(lu_f2)
@@ -252,7 +163,7 @@ def run_test_varying_condition(n, num_sigmas):
 
         # 4. DMMTRF (blocked GTH using dmmtf2)
         t0 = time.perf_counter()
-        A_trfa = dmmtrf_fortran(A, v.copy(), w.copy(), dmmtrf, nb)
+        A_trfa, _ = dmmtrf_fortran(A, v.copy(), w.copy(), nb)
         t_dmmtrf = time.perf_counter() - t0
         L = np.tril(A_trfa, -1) + np.eye(n)
         U = np.triu(A_trfa)
@@ -261,7 +172,7 @@ def run_test_varying_condition(n, num_sigmas):
         
         # 5. DMMTRFF (blocked GTH using dmmtrf2)
         t0 = time.perf_counter()
-        A_trff, info = dmmtrff_fortran(A, v.copy(), w.copy(), dmmtrff, nb)
+        A_trff, _ = dmmtrff_fortran(A, v.copy(), w.copy(), nb)
         t_dmmtrff = time.perf_counter() - t0
         L = np.tril(A_trff, -1) + np.eye(n)
         U = np.triu(A_trff)
