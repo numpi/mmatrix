@@ -8,11 +8,11 @@
 *     A = L * U
 *
 *  where:
-*     L is M-by-K unit lower trapezoidal
-*     U is K-by-N upper trapezoidal
+*     L is M-by-K  
+*     U is K-by-N  
 *     K = MIN(M,N)
 *
-*  This routine is modeled after LAPACK's DGETF2.
+ 
 *
 *  --------------------------------------------------------------------
 *
@@ -65,7 +65,7 @@
 *
       K = MIN( M, N )
 *
-*     Main GTH loop (right-looking, Level-2 BLAS)
+*     Main GTH loop  
 *
       DO 10 J = 1, K
 *
