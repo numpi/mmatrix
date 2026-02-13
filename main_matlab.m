@@ -8,7 +8,7 @@ function compare_factorization_methods()
 %   - dmmtrf: Blocked version of the GTH algorithm with DMMTF2 inside
 %   - dmmtrff: Blocked version of the GTH algorithm with DMMTRF2 inside
 
-build_mex() % this file complies fortran codes for the first run.
+build_mex() % this file compiles fortran codes for the first run.
 %% Initialization
 clear; clc;
 fprintf('The condition number varies with σ = 10^{-k} for k = 1 to 12.\n\n');
