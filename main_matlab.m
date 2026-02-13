@@ -245,7 +245,7 @@ end
 function create_visualization(results, params)
 
 c = results.c;
-n = params.n;
+ 
 
 % Create figure with your exact specifications
 figure('Position', [100 100 1200 500], 'Color', 'white');
