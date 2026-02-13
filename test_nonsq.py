@@ -26,33 +26,7 @@ import os
 import sys
 import subprocess
 
-# ------------------------------------------------------------
-# Compile Fortran modules (once)
-# ------------------------------------------------------------
-def compile_fortran_modules():
-    """
-    Compiles Fortran sources into Python-callable shared libraries
-    using NumPy f2py. This is done only if the .so files do not exist.
-    """
-
-    if not os.path.exists("dmmtf2.so"):
-        cmd = [sys.executable, "-m", "numpy.f2py", "-c",
-               "dmmtf2.f", "-m", "dmmtf2",
-               "--fcompiler=gnu95", "-lopenblas"]
-        subprocess.run(cmd, check=True)
-
-    if not os.path.exists("dgetf2.so"):
-        cmd = [sys.executable, "-m", "numpy.f2py", "-c",
-               "dgetf2.f", "-m", "dgetf2",
-               "--fcompiler=gnu95", "-lopenblas"]
-        subprocess.run(cmd, check=True)
-
-    if not os.path.exists("dmmtrf.so"):
-        cmd = [sys.executable, "-m", "numpy.f2py", "-c",
-               "dmmtf2.f", "dmmtrf.f",
-               "-m", "dmmtrf",
-               "--fcompiler=gnu95", "-lopenblas"]
-        subprocess.run(cmd, check=True)
+from mmatrix import *
 
 # ------------------------------------------------------------
 # Rectangular M-matrix generator
@@ -124,42 +98,6 @@ def lu_residual(A, LU):
 
     return la.norm(A - L @ U, ord='fro') / la.norm(A, ord='fro')
 
-# ------------------------------------------------------------
-# Fortran GTH (DMMTF2)
-# ------------------------------------------------------------
-def gth_fortran(A, v, w, module):
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy())
-    info = np.array(0, dtype=np.int32)
-
-    module.dmmtf2(m=m, n=n, a=A_f, lda=m, v=v, w=w, info=info)
-    return A_f
-
-# ------------------------------------------------------------
-# Fortran blocked GTH (DMMTRF)
-# ------------------------------------------------------------
-def dmmtrf_fortran(A, v, w, module, nb):
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy())
-    info = np.array(0, dtype=np.int32)
-    nb_val = np.array(nb, dtype=np.int32)
-    work = np.zeros(nb, dtype=np.float64, order="F")
-
-    module.dmmtrf(m=m, n=n, a=A_f, lda=m,
-                  v=v, w=w, work=work, nb=nb_val, info=info)
-    return A_f
-
-# ------------------------------------------------------------
-# LAPACK DGETF2 wrapper
-# ------------------------------------------------------------
-def dgetf2_fortran(A, module):
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy())
-    ipiv = np.zeros(min(m, n), dtype=np.int32)
-    info = np.array(0, dtype=np.int32)
-
-    module.dgetf2(m=m, n=n, a=A_f, lda=m, ipiv=ipiv, info=info)
-    return A_f
 
 # ------------------------------------------------------------
 # Main rectangular test driver
@@ -188,15 +126,15 @@ def run_test(sizes, num_repeats):
 
         for _ in range(num_repeats):
             # --- GTH unblocked ---
-            LU = gth_fortran(A, v.copy(), w.copy(), dmmtf2)
+            LU, _ = gth_fortran(A, v.copy(), w.copy())
             res_dmmtf2 += lu_residual(A, LU)
 
             # --- GTH blocked ---
-            LU = dmmtrf_fortran(A, v.copy(), w.copy(), dmmtrf, nb)
+            LU, _ = dmmtrf_fortran(A, v.copy(), w.copy(), nb)
             res_dmmtrf += lu_residual(A, LU)
 
             # --- LAPACK DGETF2 ---
-            LU = dgetf2_fortran(A, dgetf2)
+            LU, ipiv, _ = dgetf2_fortran(A)
             res_dgetf2 += lu_residual(A, LU)
 
             # --- LAPACK DGETRF ---

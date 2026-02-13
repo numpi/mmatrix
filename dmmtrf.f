@@ -5,8 +5,8 @@ C
 C     A = L * U
 C
 C  where:
-C     L is M-by-K unit lower trapezoidal
-C     U is K-by-N upper trapezoidal
+C     L is M-by-K  
+C     U is K-by-N  
 C     K = min(M,N)
 C
       INTEGER            M, N, LDA, NB, INFO

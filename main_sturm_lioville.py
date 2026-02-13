@@ -17,6 +17,9 @@ from dolfinx.fem import petsc
 from dolfinx.fem.petsc import LinearProblem
 from ufl import TrialFunction, TestFunction, grad, inner, dx, ds
 from scipy.linalg import lu_factor, lu_solve
+
+from mmatrix import *
+
 # ------------------------------------------------------------
 # Parameters
 # ------------------------------------------------------------
@@ -62,95 +65,6 @@ f_np = sp.lambdify(x_sym, f_sub, 'numpy')
 u_np = sp.lambdify(x_sym, u_ex_sym, 'numpy')
 p_np = sp.lambdify(x_sym, p_sym, 'numpy')
 q_np = sp.lambdify(x_sym, q_sym, 'numpy')
-
-# ------------------------------------------------------------
-# Compile Fortran modules
-# ------------------------------------------------------------
-def compile_fortran_modules():
-    
-    # Get current directory
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Fortran source files and module names
-    modules = [
-        ("dmmtf2.f", "dmmtf2"),
-        ("dgetf2.f", "dgetf2"),
-        (["dmmtf2.f", "dmmtrf.f"], "dmmtrf"),
-        ("dmmtrff.f", "dmmtrff")
-    ]
-    
-    for source, mod_name in modules:
-        try:
-            # Check if module already imported
-            __import__(mod_name)
-            print(f"Module {mod_name} already loaded")
-        except ImportError:
-            # Compile module
-            print(f"Compiling {mod_name}...")
-            if isinstance(source, list):
-                cmd = [sys.executable, "-m", "numpy.f2py", "-c"] + source + \
-                      ["-m", mod_name, "--fcompiler=gnu95", "--quiet"]
-            else:
-                cmd = [sys.executable, "-m", "numpy.f2py", "-c", source,
-                       "-m", mod_name, "--fcompiler=gnu95", "--quiet"]
-            
-            try:
-                subprocess.run(cmd, check=True, capture_output=True)
-                print(f"  {mod_name} compiled successfully")
-            except subprocess.CalledProcessError as e:
-                print(f"  Failed to compile {mod_name}: {e}")
-                return False
-    
-    return True
-
-# ------------------------------------------------------------
-# Fortran wrappers 
-# ------------------------------------------------------------
-def gth_dmmtf2(A, v, w):
-    import dmmtf2
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy(), dtype=np.float64)
-    v_f = np.asfortranarray(v.copy(), dtype=np.float64)
-    w_f = np.asfortranarray(w.copy(), dtype=np.float64)
-    info = np.array(0, dtype=np.int32)
-    dmmtf2.dmmtf2(m=m, n=n, a=A_f, lda=m, v=v_f, w=w_f, info=info)
-    return A_f
-
-def gth_dmmtrf(A, v, w, nb):
-    import dmmtrf
-    m, n = A.shape
-    A_f = np.asfortranarray(A.copy(), dtype=np.float64)
-    v_f = np.asfortranarray(v.copy(), dtype=np.float64)
-    w_f = np.asfortranarray(w.copy(), dtype=np.float64)
-    info = np.array(0, dtype=np.int32)
-    nb_val = np.array(min(nb, n), dtype=np.int32)
-    work = np.zeros(min(nb, n), dtype=np.float64, order='F')
-    dmmtrf.dmmtrf(m=m, n=n, a=A_f, lda=m, v=v_f, w=w_f,
-                    work=work, nb=nb_val, info=info)
-    return A_f
-
-def gth_dmmtrff(A, v, w, nb):
-        import dmmtrff
-        m, n = A.shape
-        A_f = np.asfortranarray(A.copy(), dtype=np.float64)
-        v_f = np.asfortranarray(v.copy(), dtype=np.float64)
-        w_f = np.asfortranarray(w.copy(), dtype=np.float64)
-        info = np.array(0, dtype=np.int32)
-        nb_val = np.array(min(nb, n), dtype=np.int32)
-        work_size = min(m, n)
-        work = np.zeros(work_size, dtype=np.float64, order='F')
-        dmmtrff.dmmtrff(m=m, n=n, a=A_f, lda=m, v=v_f, w=w_f,
-                        work=work, nb=nb_val, info=info)
-        return A_f
-
-def lu_dgetf2(A):
-        import dgetf2
-        m, n = A.shape
-        A_f = np.asfortranarray(A.copy(), dtype=np.float64)
-        ipiv = np.zeros(min(m, n), dtype=np.int32)
-        info = np.array(0, dtype=np.int32)
-        dgetf2.dgetf2(m=m, n=n, a=A_f, lda=m, ipiv=ipiv, info=info)
-        return A_f, ipiv
 
 # ------------------------------------------------------------
 def solve_lu(L, U, b, ipiv=None):
@@ -308,7 +222,7 @@ for N in Ns:
         # Method 3: DMMTF2 (Fortran)
         # ----------------------------------------------------
         t0 = time.perf_counter()
-        A_dmmtf2 = gth_dmmtf2(A_np, v_vec, w_gth_np.copy())
+        A_dmmtf2, _ = dmmtf2_fortran(A_np, v_vec, w_gth_np.copy())
         t_dmmtf2 = time.perf_counter() - t0
         L_dmmtf2 = np.tril(A_dmmtf2, -1) + np.eye(A_np.shape[0])
         U_dmmtf2 = np.triu(A_dmmtf2)
@@ -328,7 +242,7 @@ for N in Ns:
         # Method 4: DMMTRF (Fortran)
         # ----------------------------------------------------
         t0 = time.perf_counter()
-        A_dmmtrf = gth_dmmtrf(A_np, v_vec, w_gth_np.copy(), nb)
+        A_dmmtrf,_ = dmmtrf_fortran(A_np, v_vec, w_gth_np.copy(), nb)
         t_dmmtrf = time.perf_counter() - t0
         L_dmmtrf = np.tril(A_dmmtrf, -1) + np.eye(A_np.shape[0])
         U_dmmtrf = np.triu(A_dmmtrf)
@@ -346,7 +260,7 @@ for N in Ns:
         # Method 5: DMMTRFF (Fortran)
         # ----------------------------------------------------
         t0 = time.perf_counter()
-        A_dmmtrff = gth_dmmtrff(A_np, v_vec, w_gth_np.copy(), nb)
+        A_dmmtrff, _ = dmmtrff_fortran(A_np, v_vec, w_gth_np.copy(), nb)
         t_dmmtrff = time.perf_counter() - t0
         L_dmmtrff = np.tril(A_dmmtrff, -1) + np.eye(A_np.shape[0])
         U_dmmtrff = np.triu(A_dmmtrff)
@@ -366,7 +280,7 @@ for N in Ns:
         # Method 6: DGETF2 (Fortran)
         # ----------------------------------------------------
         t0 = time.perf_counter()
-        A_dgetf2, ipiv = lu_dgetf2(A_np)
+        A_dgetf2, ipiv, _ = dgetf2_fortran(A_np)
         t_dgetf2 = time.perf_counter() - t0
         L_dgetf2 = np.tril(A_dgetf2, -1) + np.eye(A_np.shape[0])
         U_dgetf2 = np.triu(A_dgetf2)
