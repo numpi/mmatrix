@@ -1,5 +1,5 @@
 classdef MatrixSolverFunctions
-    %matrix solver functions
+    % matrix solver functions
     
     methods(Static)
         
