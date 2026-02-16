@@ -3,7 +3,7 @@ function solver_demo()
 % for solving linear systems Ax = b, where A is an M-matrix and 
 % and vectors v and w are chosen such that Av = w.
 %
-clear; clc; close all;
+clc; close all;
 
 build_mex(); 
 
