@@ -1,6 +1,7 @@
 #include "mex.h"
+#include <string.h>  /* for memcpy */
 
-/* Fortran routine name (lowercase + underscore for gfortran) */
+/* Fortran routine name */
 extern void dmmtrff_(mwSignedIndex *m, mwSignedIndex *n,
                      double *A, mwSignedIndex *lda,
                      double *V, double *W,
@@ -11,35 +12,33 @@ extern void dmmtrff_(mwSignedIndex *m, mwSignedIndex *n,
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    /* Inputs:
-       prhs[0] = A
-       prhs[1] = v
-       prhs[2] = w
-       prhs[3] = nb
-    */
-
     if (nrhs != 4)
         mexErrMsgTxt("Usage: [A_out, info] = dmmtrff_mex(A,v,w,nb)");
 
     if (nlhs > 2)
         mexErrMsgTxt("Too many output arguments.");
 
-    double *A_in  = mxGetPr(prhs[0]);
-    double *v     = mxGetPr(prhs[1]);
-    double *w     = mxGetPr(prhs[2]);
-
-    mwSignedIndex nb = (mwSignedIndex) mxGetScalar(prhs[3]);
-
-    mwSignedIndex m = mxGetM(prhs[0]);
-    mwSignedIndex n = mxGetN(prhs[0]);
+    mwSignedIndex m  = (mwSignedIndex) mxGetM(prhs[0]);
+    mwSignedIndex n  = (mwSignedIndex) mxGetN(prhs[0]);
     mwSignedIndex lda = m;
+    mwSignedIndex nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
     mwSignedIndex info = 0;
 
-    /* Create output matrix (copy of A) */
+    /* Duplicate A */
     plhs[0] = mxDuplicateArray(prhs[0]);
     double *A = mxGetPr(plhs[0]);
 
-    /* Create work array */
+    /* Create PRIVATE COPIES of v and w */
+    double *v_in = mxGetPr(prhs[1]);
+    double *w_in = mxGetPr(prhs[2]);
+
+    double *v = mxMalloc(n * sizeof(double));
+    double *w = mxMalloc(n * sizeof(double));
+
+    memcpy(v, v_in, n * sizeof(double));
+    memcpy(w, w_in, n * sizeof(double));
+
+    /* Workspace (min(m,n) is fine, but n is safe too) */
     mwSignedIndex k = (m < n) ? m : n;
     double *work = mxMalloc(k * sizeof(double));
 
@@ -48,6 +47,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
              v, w, work,
              &nb, &info);
 
+    /* Free memory */
+    mxFree(v);
+    mxFree(w);
     mxFree(work);
 
     if (nlhs == 2)

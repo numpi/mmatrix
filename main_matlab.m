@@ -15,8 +15,8 @@ fprintf('The condition number varies with σ = 10^{-k} for k = 1 to 12.\n\n');
 % Problem parameters
 params = struct();
 params.n = 256;                  % Matrix size (n x n)
-params.nb = 64;                 % Block size for blocked algorithms
-params.sigmas = 10.^(-(1:12));  % Range of sigma values (affects conditioning)
+params.nb = 64;                  % Block size for blocked algorithms
+params.sigmas = 10.^(-(1:12));   % Range of sigma values (affects conditioning)
 params.h = 1 / (params.n + 1);   % Grid spacing
 params.v = ones(params.n, 1);    % Vector v
 
@@ -43,7 +43,7 @@ nt = length(sigmas); c = 1:nt;
 results = struct();
 results.c = c; znt=zeros(1, nt); results.conds = znt;
 results.norms_gth = znt; results.norms_lu = znt; results.norms_dmmtf2 = znt;
-results.norms_dmmtrf = znt; results.norms_dmmtrff = znt; results.tgth = znt; 
+results.norms_dmmtrf = znt; results.norms_dmmtrff = znt; results.tgth = znt;
 results.tlu = znt; results.tdmmtf2 = znt; results.tdmmtrf = znt; results.tdmmtrff = znt;
 
 for k = c
@@ -54,15 +54,14 @@ for k = c
     results.conds(k) = cond(A);
     % Compute exact solution using high precision
     x_exact = exact_solution(A, v, w, b);
-    
-    wt = zeros(n,1); wt(1) = h*sigma; wt(end) = h*sigma;
-    w1 = zeros(n,1); w1(1) = h*sigma; w1(end) = h*sigma;
+
     % Run each factorization method
     [results.tgth(k), results.norms_gth(k)] = run_gthlu(A, b, x_exact, v, w);
     [results.tlu(k), results.norms_lu(k)] = run_standard_lu(A, b, x_exact);
+    [results.tdmmtrf(k), results.norms_dmmtrf(k), info3] = run_dmmtrf(A, b, x_exact, v, w, nb);
+    [results.tdmmtrff(k), results.norms_dmmtrff(k), info4] = run_dmmtrff(A, b, x_exact, v, w, nb);
     [results.tdmmtf2(k), results.norms_dmmtf2(k), info2] = run_dmmtf2(A, b, x_exact, v, w);
-    [results.tdmmtrf(k), results.norms_dmmtrf(k), info3] = run_dmmtrf(A, b, x_exact, v, wt, nb);
-    [results.tdmmtrff(k), results.norms_dmmtrff(k), info4] = run_dmmtrff(A, b, x_exact, v, w1, nb);
+
 
     % Check for warnings
     if info2 ~= 0
@@ -115,15 +114,15 @@ tic; [Af, info] = dmmtf2_mex(A, v, w); time = toc;
 x = solvelu(Af, b); rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
-function [time, rel_error, info] = run_dmmtrf(A, b, x_exact, v, wt, nb)
+function [time, rel_error, info] = run_dmmtrf(A, b, x_exact, v, w, nb)
 % RUN_DMMTRF Run dmmtrf factorization
-tic; [Af, info] = dmmtrf_mex(A, v, wt, nb); time = toc;
+tic; [Af, info] = dmmtrf_mex(A, v, w, nb); time = toc;
 x = solvelu(Af, b); rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
-function [time, rel_error, info] = run_dmmtrff(A, b, x_exact, v, wt, nb)
+function [time, rel_error, info] = run_dmmtrff(A, b, x_exact, v, w, nb)
 % RUN_DMMTRFF Run dmmtrff factorization
-tic; [Af, info] = dmmtrff_mex(A, v, wt, nb); time = toc;
+tic; [Af, info] = dmmtrff_mex(A, v, w, nb); time = toc;
 x = solvelu(Af, b); rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
