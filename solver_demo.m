@@ -1,21 +1,33 @@
 function solver_demo()
-% This tool allows users to compare different factorization methods
-% for solving linear systems Ax = b, where A is an M-matrix and 
-% and vectors v and w are chosen such that Av = w.
+% SOLVER_DEMO compares various factorization methods for solving linear systems
+% Ax = b, where A is an M-matrix and vectors v, w satisfy Av = w.
+%
+% Algorithms:
+% 
+% GTH: Pure matlab implementation of GTH
+% LU(DGETRF): LAPACK blocked LU factorization 
+% DMMTF2: Unblocked version of the GTH algorithm 
+% DMMTRF: Blocked version of the GTH algorithm with DMMTF2 inside
+% DMMTRFF: Blocked version of the GTH algorithm with DMMTRF2 inside
+%
+% See also: MatrixSolverFunctions, build_mex
 %
 clc; close all;
 
 build_mex(); 
 
 fprintf('============================================\n');
-fprintf('    MATRIX SOLVER COMPARISON TOOL\n');
+fprintf('   COMPARE FACTORIZATION METHODS\n');
 fprintf('============================================\n\n');
 
-% Get user preferences
-[method_flags, use_custom] = get_user_preferences();
+% Get user preferences including problem type
+[method_flags, use_custom, use_workspace] = get_user_preferences();
 
-% Get matrix data
-if use_custom
+% Get matrix data based on user choice
+if use_workspace
+    [A, b, v, w] = get_from_workspace();
+    run_single_matrix(A, b, v, w, method_flags);
+elseif use_custom
     [A, b, v, w] = get_custom_input();
     run_single_matrix(A, b, v, w, method_flags);
 else
@@ -25,15 +37,72 @@ end
 end
 
 %--------------------------------------------------------------------------
-function [method_flags, use_custom] = get_user_preferences()
+function [method_flags, use_custom, use_workspace] = get_user_preferences()
 % Get user preferences for methods and problem type
 
 fprintf('Choose problem type:\n');
 fprintf('  1. Use predefined FEM problem\n');
 fprintf('  2. Input an M-matrix A and vectors v,w,b\n');
-choice = input('Enter your choice (1 or 2): ');
+fprintf('  3. Load A, b, v, w from workspace\n');
+choice = input('Enter your choice (1, 2, or 3): ');
 
 use_custom = (choice == 2);
+use_workspace = (choice == 3);
+
+method_flags = get_method_preferences();
+
+fprintf('\n');
+end
+
+%--------------------------------------------------------------------------
+function [A, b, v, w] = get_from_workspace()
+% Load matrix and vectors directly from workspace
+
+fprintf('\n--- Loading from Workspace ---\n');
+
+% Check if variables exist
+if ~evalin('base', 'exist(''A'', ''var'')')
+    error('Variable ''A'' not found in workspace');
+end
+if ~evalin('base', 'exist(''b'', ''var'')')
+    error('Variable ''b'' not found in workspace');
+end
+if ~evalin('base', 'exist(''v'', ''var'')')
+    error('Variable ''v'' not found in workspace');
+end
+if ~evalin('base', 'exist(''w'', ''var'')')
+    error('Variable ''w'' not found in workspace');
+end
+
+% Load variables
+A = evalin('base', 'A');
+b = evalin('base', 'b');
+v = evalin('base', 'v');
+w = evalin('base', 'w');
+
+% Verify A is a square matrix
+if size(A,1) ~= size(A,2)
+    error('A must be a square matrix');
+end
+n = size(A,1);
+
+% Verify vector dimensions
+if size(b,1) ~= n
+    error('b must have %d rows to match matrix A', n);
+end
+if size(v,1) ~= n
+    error('v must have %d rows to match matrix A', n);
+end
+if size(w,1) ~= n
+    error('w must have %d rows to match matrix A', n);
+end
+ 
+
+end
+
+%--------------------------------------------------------------------------
+function method_flags = get_method_preferences()
+% Get user preferences for solution methods
 
 fprintf('\nAvailable solution methods:\n');
 fprintf('  1. GTH(pure MATLAB)\n');
@@ -70,8 +139,6 @@ else
         method_flags.dmmtrff = true;
     end
 end
-
-fprintf('\n');
 end
 
 %--------------------------------------------------------------------------
