@@ -1,4 +1,4 @@
-classdef MatrixSolverFunctions
+classdef mmatrix
     % matrix solver functions
     
     methods(Static)
@@ -29,7 +29,9 @@ classdef MatrixSolverFunctions
             Avpa(1:n+1:end) = f ./ v;
             x_exact = double(Avpa \ b);
         end
-        
+         function x_exact = exact_solution_lu(A, b)
+            x_exact = double(vpa(A) \ b);
+         end
         %------------------------------------------------------------------
         function [time, rel_error] = run_gthlu(A, b, x_exact, v, w)
             % Run GTH method
@@ -56,7 +58,7 @@ classdef MatrixSolverFunctions
                 tic;
                 [Af, info] = dmmtf2_mex(A, v, w);
                 time = toc;
-                    x = MatrixSolverFunctions.solvelu(Af, b);
+                    x = mmatrix.solvelu(Af, b);
                     rel_error = norm(x - x_exact) / norm(x_exact);
         end
         
@@ -66,7 +68,7 @@ classdef MatrixSolverFunctions
                 tic;
                 [Af, info] = dmmtrf_mex(A, v, w, nb);
                 time = toc;
-                    x = MatrixSolverFunctions.solvelu(Af, b);
+                    x = mmatrix.solvelu(Af, b);
                     rel_error = norm(x - x_exact) / norm(x_exact);
         end
         
@@ -76,7 +78,7 @@ classdef MatrixSolverFunctions
                 tic;
                 [Af, info] = dmmtrff_mex(A, v, w, nb);
                 time = toc;
-                    x = MatrixSolverFunctions.solvelu(Af, b);
+                    x = mmatrix.solvelu(Af, b);
                     rel_error = norm(x - x_exact) / norm(x_exact);
         end
         
@@ -130,37 +132,38 @@ classdef MatrixSolverFunctions
                 v = ones(n,1);
                 
                 % Create problem
-                [A, b, w] = MatrixSolverFunctions.create_fem_problem(n, h, sigma);
+                [A, b, w] = mmatrix.create_fem_problem(n, h, sigma);
                 
                 results.conds(k) = cond(A);
                 
                 % Exact solution
-                x_exact = MatrixSolverFunctions.exact_solution(A, v, w, b);
-                
+                x_exact = mmatrix.exact_solution(A, v, w, b);
+                x_exact_lu = mmatrix.exact_solution_lu(A, b);
+
                 % Run selected methods
                 if method_flags.gth
                     [results.tgth(k), results.norms_gth(k)] = ...
-                        MatrixSolverFunctions.run_gthlu(A, b, x_exact, v, w);
+                        mmatrix.run_gthlu(A, b, x_exact, v, w);
                 end
                 
                 if method_flags.lu
                     [results.tlu(k), results.norms_lu(k)] = ...
-                        MatrixSolverFunctions.run_standard_lu(A, b, x_exact);
+                        mmatrix.run_standard_lu(A, b, x_exact_lu);
                 end
                 
                 if method_flags.dmmtf2
                     [results.tdmmtf2(k), results.norms_dmmtf2(k)] = ...
-                        MatrixSolverFunctions.run_dmmtf2(A, b, x_exact, v, w);
+                        mmatrix.run_dmmtf2(A, b, x_exact, v, w);
                 end
                 
                 if method_flags.dmmtrf
                     [results.tdmmtrf(k), results.norms_dmmtrf(k)] = ...
-                        MatrixSolverFunctions.run_dmmtrf(A, b, x_exact, v, w, nb);
+                        mmatrix.run_dmmtrf(A, b, x_exact, v, w, nb);
                 end
                 
                 if method_flags.dmmtrff
                     [results.tdmmtrff(k), results.norms_dmmtrff(k)] = ...
-                        MatrixSolverFunctions.run_dmmtrff(A, b, x_exact, v, w, nb);
+                        mmatrix.run_dmmtrff(A, b, x_exact, v, w, nb);
                 end
             end
         end
