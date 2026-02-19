@@ -61,9 +61,7 @@ C     Recursive case
       M2 = M - N1
       
 C     Save W(1:N1) in WORK
-      DO 30 I = 1, N1
-         WORK(I) = W(I)
-   30 CONTINUE
+      CALL DCOPY(N1, W, 1, WORK, 1)
       
 C     Update W(1:N1) = W(1:N1) - A(1:N1, N1+1:N) * V(N1+1:N)
       IF (N2 .GT. 0) THEN
@@ -78,9 +76,7 @@ C     Recursively factor A11
       IF (INFO .EQ. 0 .AND. IINFO .GT. 0) INFO = IINFO
       
 C     Restore W(1:N1)
-      DO 40 I = 1, N1
-         W(I) = WORK(I)
-   40 CONTINUE
+      CALL DCOPY(N1, WORK, 1, W, 1)
       
 C     Solve U12 = L11^{-1} * A12
       IF (N2 .GT. 0) THEN
