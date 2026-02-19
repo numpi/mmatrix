@@ -45,9 +45,10 @@ C     Blocked algorithm
          N2 = N - J - JB + 1
          
 C        Compute WORK(1:JB) = w(J:J+JB-1) - A(J:J+JB-1,J+JB:N)*v(J+JB:N)
-         DO 20 I = 1, JB
-            WORK(I) = W(J+I-1)
-   20    CONTINUE
+C         DO 20 I = 1, JB
+C            WORK(I) = W(J+I-1)
+C   20    CONTINUE
+          CALL DCOPY(JB, W(J), 1, WORK, 1)
          
          IF ( N2 .GT. 0 ) THEN
             CALL DGEMV( 'N', JB, N2, -ONE,
