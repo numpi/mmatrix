@@ -1,2 +1,9 @@
 *.so
 __pycache__
+*.o
+*.obj
+*.mexa64
+*.mexw64
+*.mexglx
+*.mexmaca64
+*.mexmaci64
