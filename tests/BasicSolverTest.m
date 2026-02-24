@@ -25,6 +25,12 @@ function testDmmtf2(testCase)
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    % test with more outputs
+    [LU, info] = dmmtf2_mex(A, v, w);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    [LU, info, outw] = dmmtf2_mex(A, v, w);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
 end
 
 function testDmmtrf2(testCase)

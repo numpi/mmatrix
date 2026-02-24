@@ -117,15 +117,18 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSignedIndex nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
     worksize = nb;
 #endif
+#ifdef WORK_SIZE_2NB
+    worksize = 2*nb;
+#endif
     mwSignedIndex info = 0;
 
     /* --------------------------------------------------
        Duplicate A (factorization is in-place)
     -------------------------------------------------- */
-    plhs[0] = mxDuplicateArray(prhs[0]);
-    double *A = mxGetPr(plhs[0]);
+    mxArray *Ap = mxDuplicateArray(prhs[0]);
+    double *A = mxGetPr(Ap);
 
-#ifdef HAS_TRIPLET    
+#ifdef HAS_TRIPLET
     /* --------------------------------------------------
        v is read-only: no copy/duplication
     -------------------------------------------------- */
@@ -133,8 +136,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --------------------------------------------------
        Duplicate w (FUNNAME_ overwrites W)
     -------------------------------------------------- */
-    plhs[numoutputs+1] = mxDuplicateArray(prhs[2]);
-    double *w = mxGetPr(plhs[numoutputs+1]);    
+    mxArray *wp = mxDuplicateArray(prhs[2]);
+    double *w = mxGetPr(wp);    
 #endif    
 
 #ifdef HAS_WORK    
@@ -145,8 +148,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #ifdef HAS_IPIV
     /* Prepare pivot array */
     mwSignedIndex min_mn = m < n ? m : n;
-    plhs[1] = mxCreateNumericMatrix(min_mn, 1, mxINT64_CLASS, mxREAL);
-    mwSignedIndex *ipiv = (mwSignedIndex*) mxGetData(plhs[1]);
+    mxArray *ipivp = mxCreateNumericMatrix(min_mn, 1, mxINT64_CLASS, mxREAL);
+    mwSignedIndex *ipiv = (mwSignedIndex*) mxGetData(ipivp);
 #endif
 
     /* --------------------------------------------------
@@ -167,7 +170,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif 
                       &info);
 
-
 #ifdef HAS_WORK
     /* --------------------------------------------------
        Cleanup work array
@@ -175,19 +177,28 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (work) { mxFree(work); work = NULL; }
 #endif
 
+    if (nlhs >= 1)
+        plhs[0] = Ap;
+    else
+        mxDestroyArray(Ap);
+
+#ifdef HAS_IPIV
+    if (nlhs >= 2)
+        plhs[1] = ipivp;
+    else
+        mxDestroyArray(ipivp);
+#endif
+
     /* --------------------------------------------------
        info output if requested
     -------------------------------------------------- */
-    if (nlhs >= numoutputs+1)
+    if (nlhs >= numoutputs + 1)
         plhs[numoutputs] = mxCreateDoubleScalar((double)info);
 
-#ifdef HAS_TRIPLET   
-    /* --------------------------------------------------
-       If w is not requested as output, free it and clear plhs[2]
-    -------------------------------------------------- */
-    if (nlhs < numoutputs + 2) {
-        mxDestroyArray(plhs[numoutputs+1]);
-        plhs[numoutputs+1] = NULL;
-    }
+#ifdef HAS_TRIPLET
+    if (nlhs >= numoutputs + 2)
+        plhs[numoutputs+1] = wp;
+    else
+        mxDestroyArray(wp);
 #endif    
 }
