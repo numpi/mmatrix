@@ -27,9 +27,15 @@ function testDmmtf2(testCase)
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     % test with more outputs
     [LU, info] = dmmtf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);    
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(info, 0);
     [LU, info, outw] = dmmtf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(info, 0);
     testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
 end
 
@@ -72,7 +78,7 @@ end
 function testDgetf2(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
+    [A, ~, ~] = randtriplet(n);
     [LU, ipiv] = dgetf2_mex(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
@@ -82,7 +88,7 @@ end
 function testDgetrf2(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
+    [A, ~, ~] = randtriplet(n);
     [LU, ipiv] = dgetrf2_mex(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
@@ -92,9 +98,31 @@ end
 function testDgetrf(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
+    [A, ~, ~] = randtriplet(n);
     [LU, ipiv] = dgetrf_mex(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+end
+
+function testDmltf2(testCase)
+    rng(0);
+    n = 4;
+    [A, v, w] = randtriplet(n, left=true);
+    LU = dmltf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    % test with more outputs
+    [LU, info] = dmmtf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);    
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(info, 0);
+    [LU, info, outw] = dmmtf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(info, 0);
+    % testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
 end

@@ -102,12 +102,22 @@ void mexFunction(int nlhs, mxArray *plhs[],
         mexErrMsgIdAndTxt(FUNNAME_STR ":square",
                           "A must be square.");
 
-#ifdef HAS_TRIPLET    
-    if (mxGetNumberOfElements(prhs[1]) != n ||
-        mxGetNumberOfElements(prhs[2]) != n)
-        mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
-                          "v and w must have length n.");
+#ifdef HAS_TRIPLET
+
+#ifdef LEFT_TRIPLET
+    mwSize vlength = m;
+    mwSize wlength = n;
+#else
+    mwSize vlength = n;
+    mwSize wlength = m;
 #endif    
+    if (mxGetNumberOfElements(prhs[1]) != vlength)
+        mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
+                          "v has the wrong length.");
+    if (mxGetNumberOfElements(prhs[2]) != wlength)
+        mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
+                          "w has the wrong length.");
+#endif
 
     mwSignedIndex M   = (mwSignedIndex)m;
     mwSignedIndex N   = (mwSignedIndex)n;
