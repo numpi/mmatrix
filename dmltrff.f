@@ -1,17 +1,16 @@
 C *********************************************************************
 C *  DMLTRFF (LEFT BLOCKED GTH using DMLTRF2 inside)                  *
 C *  DMLTRFF computes a recursive blocked GTH factorization for a     *
-C *  given M-matrix A and vectors V and W satisfying W^T = V^T * A.   *
+C *  given M-matrix A and vectors V and W satisfying V'*A = W'.       *
 C *                                                                   *
 C *  Recursive blocked factorization of an M-by-N matrix:             *
 C *                                                                   *
 C *        A = L * U                                                  *
 C *                                                                   *
 C *  where:                                                           *
-C *     - L is lower triangular (M x K)                               *
-C *     - U is upper triangular with unit diagonal (K x N)            *
+C *     - L is lower triangular with unit diagonal (M x K)            *
+C *     - U is upper triangular (K x N)                               *
 C *     - K = min(M,N)                                                *
-C *  In this case, U has unit diagonal.                               *
 C *********************************************************************
       SUBROUTINE DMLTRFF( M, N, A, LDA, V, W, WORK, NB, INFO )
 
@@ -29,7 +28,7 @@ C     .. Parameters ..
       PARAMETER          ( ONE = 1.0D0 )
 
 C     .. External Subroutines ..
-      EXTERNAL           DMLTRF2, DGEMM, DGEMV, DTRSM, DTRSV
+      EXTERNAL           DMLTRF2, DGEMM, DGEMV, DTRSM, DTRSV, DCOPY
       EXTERNAL           XERBLA
       
 C     .. Intrinsic Functions ..
@@ -63,15 +62,13 @@ C Blocked loop
       DO 10 J = 1, K, NB
 
          JB = MIN( NB, K - J + 1 )
-         M2 = M - J - JB + 1
-         N2 = N - J - JB + 1
+         M2 = M - (J + JB) + 1
+         N2 = N - (J + JB) + 1
 C ------------------------------------------------------------
-C WORK = W(J:J+JB-1)
+C Compute w_hat = W(J:J+JB-1) - V(J+JB:M)' * A(J+JB:M, J:J+JB-1)
          CALL DCOPY( JB, W(J), 1, WORK, 1 )
-C ------------------------------------------------------------
-C WORK -= V(J+JB:N)^T * A(J+JB:N, J:J+JB-1)
-         IF ( N2 .GT. 0 ) THEN
-            CALL DGEMV( 'T', N2, JB, -ONE,
+         IF ( M2 .GT. 0 ) THEN
+            CALL DGEMV( 'T', M2, JB, -ONE,
      $                  A(J+JB, J), LDA,
      $                  V(J+JB), 1,
      $                  ONE, WORK, 1 )
@@ -84,23 +81,23 @@ C Factor diagonal block (LEFT recursive)
          IF ( INFO .EQ. 0 .AND. IINFO .GT. 0 )
      $        INFO = IINFO + J - 1
 C ------------------------------------------------------------
-C U12 = L11^{-1} * A12
+C U12 = L11 \ A12  (L11 is unit lower triangular)
          IF ( N2 .GT. 0 ) THEN
-            CALL DTRSM( 'L', 'L', 'N', 'N',
+            CALL DTRSM( 'L', 'L', 'N', 'U',
      $                  JB, N2, ONE,
      $                  A(J,J), LDA,
      $                  A(J,J+JB), LDA )
          END IF
 C ------------------------------------------------------------
-C L21 = A21 * U11^{-1}  (U unit upper)
+C L21 = A21 / U11  (U11 is upper triangular)
          IF ( M2 .GT. 0 ) THEN
-            CALL DTRSM( 'R', 'U', 'N', 'U',
+            CALL DTRSM( 'R', 'U', 'N', 'N',
      $                  M2, JB, ONE,
      $                  A(J,J), LDA,
      $                  A(J+JB,J), LDA )
          END IF
 C ------------------------------------------------------------
-C Schur complement
+C Schur complement: A22 = A22 - L21 * U12
          IF ( M2 .GT. 0 .AND. N2 .GT. 0 ) THEN
             CALL DGEMM( 'N', 'N', M2, N2, JB, -ONE,
      $                  A(J+JB,J), LDA,
@@ -108,15 +105,14 @@ C Schur complement
      $                  ONE, A(J+JB,J+JB), LDA )
          END IF
 C ------------------------------------------------------------
-C W(J:J+JB-1) = W(J:J+JB-1) * U11^{-1}
-         CALL DTRSV( 'U', 'T', 'U',
-     $               JB, A(J,J), LDA, W(J), 1 )
-C ------------------------------------------------------------
-C W(J+JB:N) -= W(J:J+JB-1) * U12
+C Update W(J+JB:N) = W(J+JB:N) - (W(J:J+JB-1) / U11) * U12
          IF ( N2 .GT. 0 ) THEN
+            CALL DCOPY( JB, W(J), 1, WORK, 1 )
+            CALL DTRSV( 'U', 'T', 'N',
+     $                  JB, A(J,J), LDA, WORK, 1 )
             CALL DGEMV( 'T', JB, N2, -ONE,
      $                  A(J,J+JB), LDA,
-     $                  W(J), 1,
+     $                  WORK, 1,
      $                  ONE, W(J+JB), 1 )
          END IF
 
@@ -126,17 +122,17 @@ C W(J+JB:N) -= W(J:J+JB-1) * U12
       END
 
 C *********************************************************************
-C  DMLTRF2  
+C  DMLTRF2 - Recursive GTH factorization for left case
 C *********************************************************************
       RECURSIVE SUBROUTINE DMLTRF2(M, N, A, LDA, V, W, WORK, INFO)
       INTEGER            M, N, LDA, INFO
       DOUBLE PRECISION   A(LDA,*), V(*), W(*), WORK(*)
 
       INTEGER            I, IINFO, K, M1, M2, N1, N2
-      DOUBLE PRECISION   ONE, ZERO
+      DOUBLE PRECISION   ONE, ZERO, PIVOT
       PARAMETER          ( ONE = 1.0D0, ZERO = 0.0D0 )
 
-      EXTERNAL           DGEMV, DGEMM, DTRSM, DTRSV, XERBLA
+      EXTERNAL           DGEMV, DGEMM, DTRSM, DTRSV, DCOPY, XERBLA
       INTRINSIC          MIN, MAX
 C ------------------------------------------------------------
 C  Test input parameters
@@ -159,73 +155,70 @@ C  Quick return if possible
 
 C Base case
       IF (K .EQ. 1) THEN
-         A(1,1) = W(1)/V(1)
+         PIVOT = W(1) / V(1)
+         A(1,1) = PIVOT
          RETURN
       END IF
 C ------------------------------------------------------------
-C Recursive case
+C Recursive case 
       N1 = K/2
       N2 = N - N1
       M1 = N1
       M2 = M - N1
 C ------------------------------------------------------------
+C Compute w_hat for top-left block
       CALL DCOPY(N1, W, 1, WORK, 1)
-C ------------------------------------------------------------
-C W(1:N1) -= V(N1+1:N)^T * A(N1+1:N,1:N1)
-      IF (N2 .GT. 0) THEN
-         CALL DGEMV('T', N2, N1, -ONE,
+      IF (M2 .GT. 0) THEN
+         CALL DGEMV('T', M2, N1, -ONE,
      $              A(N1+1,1), LDA,
-     $              V(N1+1),1,
-     $              ONE, W,1)
+     $              V(N1+1), 1,
+     $              ONE, WORK, 1)
       END IF
 C ------------------------------------------------------------
 C Recursively factor A11
-      CALL DMLTRF2(N1,N1,A,LDA,V,W,WORK(N1+1),IINFO)
+      CALL DMLTRF2(N1, N1, A, LDA, V, WORK, WORK(N1+1), IINFO)
       IF (INFO .EQ. 0 .AND. IINFO .GT. 0) INFO = IINFO
 C ------------------------------------------------------------
-      CALL DCOPY(N1, WORK,1,W,1)
-C ------------------------------------------------------------
-C U12 = L11^{-1} * A12
+C U12 = L11 \ A12
       IF (N2 .GT. 0) THEN
-         CALL DTRSM('L','L','N','N',
-     $              N1,N2,ONE,
-     $              A,LDA,
-     $              A(1,N1+1),LDA)
+         CALL DTRSM('L', 'L', 'N', 'U',
+     $              N1, N2, ONE,
+     $              A, LDA,
+     $              A(1, N1+1), LDA)
       END IF
 C ------------------------------------------------------------
-C L21 = A21 * U11^{-1}
+C L21 = A21 / U11
       IF (M2 .GT. 0) THEN
-         CALL DTRSM('R','U','N','U',
-     $              M2,N1,ONE,
-     $              A,LDA,
-     $              A(N1+1,1),LDA)
+         CALL DTRSM('R', 'U', 'N', 'N',
+     $              M2, N1, ONE,
+     $              A, LDA,
+     $              A(N1+1, 1), LDA)
       END IF
 C ------------------------------------------------------------
-C Schur complement
+C Schur complement: A22 = A22 - L21 * U12
       IF (M2 .GT. 0 .AND. N2 .GT. 0) THEN
-         CALL DGEMM('N','N',
-     $              M2,N2,N1,-ONE,
-     $              A(N1+1,1),LDA,
-     $              A(1,N1+1),LDA,
-     $              ONE,A(N1+1,N1+1),LDA)
+         CALL DGEMM('N', 'N',
+     $              M2, N2, N1, -ONE,
+     $              A(N1+1, 1), LDA,
+     $              A(1, N1+1), LDA,
+     $              ONE, A(N1+1, N1+1), LDA)
       END IF
 C ------------------------------------------------------------
-C W(1:N1) = W(1:N1) * U11^{-1}
-      CALL DTRSV('U','T','U',
-     $           N1,A,LDA,W,1)
-C ------------------------------------------------------------
-C W(N1+1:N) -= W(1:N1) * U12
+C Update W 
+      CALL DCOPY(N1, W, 1, WORK, 1)
+      CALL DTRSV('U', 'T', 'N',
+     $           N1, A, LDA, WORK, 1)
       IF (N2 .GT. 0) THEN
-         CALL DGEMV('T',N1,N2,-ONE,
-     $              A(1,N1+1),LDA,
-     $              W,1,
-     $              ONE,W(N1+1),1)
+         CALL DGEMV('T', N1, N2, -ONE,
+     $              A(1, N1+1), LDA,
+     $              WORK, 1,
+     $              ONE, W(N1+1), 1)
       END IF
 C ------------------------------------------------------------
 C Recursively factor A22
       IF (M2 .GT. 0 .AND. N2 .GT. 0) THEN
-         CALL DMLTRF2(M2,N2,A(N1+1,N1+1),LDA,
-     $                V(N1+1),W(N1+1),WORK,IINFO)
+         CALL DMLTRF2(M2, N2, A(N1+1, N1+1), LDA,
+     $                V(N1+1), W(N1+1), WORK, IINFO)
          IF (INFO .EQ. 0 .AND. IINFO .GT. 0)
      $        INFO = IINFO + N1
       END IF

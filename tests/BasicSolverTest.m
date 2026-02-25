@@ -10,11 +10,13 @@ end
 
 function testGthLU(testCase)
     rng(0);
-    [A, v, w] = randtriplet(4);
+    n = 4;
+    [A, v, w] = randtriplet(n);
     [L, U] = gthlu(A, v, w);
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
     testCase.verifyEqual(L, tril(L));
-    testCase.verifyEqual(U, triu(U));    
+    testCase.verifyEqual(U, triu(U));
+    testCase.verifyEqual(diag(L), ones(n,1))
 end
 
 function testDmmtf2(testCase)

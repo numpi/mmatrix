@@ -1,18 +1,18 @@
 C *********************************************************************
 C *  DMLTRF (LEFT BLOCKED GTH using DMLTF2 inside)                    *
 C *  DMLTRF computes a blocked GTH factorization for a given          *
-C *  M-matrix A and vectors V and W such that W^T = V^T * A.          *
+C *  M-matrix A and vectors V and W such that V'*A = W'.              *
 C *                                                                   *
 C *  Blocked factorization of an M-by-N matrix:                       *
 C *                                                                   *
 C *        A = L * U                                                  *
 C *                                                                   *
 C *  where:                                                           *
-C *     - L is lower triangular (M x K)                               *
-C *     - U is upper triangular with unit diagonal (K x N)            *
+C *     - L is lower triangular with unit diagonal (M x K)            *
+C *     - U is upper triangular (K x N)                               *
 C *     - K = min(M,N)                                                *
 C *                                                                   *
-C *  In this case, U has unit diagonal.                               *
+C *  In this case, L has unit diagonal.                               *
 C *********************************************************************
       SUBROUTINE DMLTRF( M, N, A, LDA, V, W, WORK, NB, INFO )
 
@@ -31,7 +31,7 @@ C     .. Parameters ..
 
 C     .. External Subroutines ..
       EXTERNAL           DMLTF2
-      EXTERNAL           DGEMM, DGEMV, DTRSM, DTRSV
+      EXTERNAL           DGEMM, DGEMV, DTRSM, DCOPY
       
 C     .. Intrinsic Functions ..
       INTRINSIC          MIN, MAX
@@ -68,14 +68,11 @@ C Main blocked loop
          M2 = M - (J + JB) + 1
          N2 = N - (J + JB) + 1
 C ------------------------------------------------------------
-C WORK = W(J:J+JB-1)
-         WORK(1:JB) = W(J:J+JB-1)
-C ------------------------------------------------------------
-C WORK -= V(J+JB:N)^T * A(J+JB:N,J:J+JB-1)
-C (row times matrix)
-         IF ( N2 .GT. 0 ) THEN
+C Compute w_hat = W(J:J+JB-1) - V(J+JB:M)' * A(J+JB:M, J:J+JB-1)
+         CALL DCOPY( JB, W( J ), 1, WORK, 1 )
+         IF ( M2 .GT. 0 ) THEN
             CALL DGEMV( 'T',
-     $           N2, JB,
+     $           M2, JB,
      $           -ONE,
      $           A( J+JB, J ), LDA,
      $           V( J+JB ), 1,
@@ -83,7 +80,7 @@ C (row times matrix)
      $           WORK, 1 )
          END IF
 C ------------------------------------------------------------
-C Factor diagonal block 
+C Factor diagonal block using left GTH
          CALL DMLTF2( JB, JB,
      $        A( J, J ), LDA,
      $        V( J ), WORK, IINFO )
@@ -91,25 +88,25 @@ C Factor diagonal block
          IF ( INFO .EQ. 0 .AND. IINFO .GT. 0 )
      $        INFO = IINFO + J - 1
 C ------------------------------------------------------------
-C U12 = L11^{-1} * A12
+C U12 = L11 \ A12  (L11 is unit lower triangular)
          IF ( N2 .GT. 0 ) THEN
-            CALL DTRSM( 'L','L','N','N',
+            CALL DTRSM( 'L','L','N','U',
      $           JB, N2,
      $           ONE,
      $           A( J, J ), LDA,
      $           A( J, J+JB ), LDA )
          END IF
 C ------------------------------------------------------------
-C L21 = A21 * U11^{-1} (U11 is unit upper)
+C L21 = A21 / U11  (U11 is upper triangular)
          IF ( M2 .GT. 0 ) THEN
-            CALL DTRSM( 'R','U','N','U',
+            CALL DTRSM( 'R','U','N','N',
      $           M2, JB,
      $           ONE,
      $           A( J, J ), LDA,
      $           A( J+JB, J ), LDA )
          END IF
 C ------------------------------------------------------------
-C Schur complement
+C Schur complement: A22 = A22 - L21 * U12
          IF ( M2 .GT. 0 .AND. N2 .GT. 0 ) THEN
             CALL DGEMM( 'N','N',
      $           M2, N2, JB,
@@ -120,22 +117,18 @@ C Schur complement
      $           A( J+JB, J+JB ), LDA )
          END IF
 C ------------------------------------------------------------
-C W(J:J+JB-1) = W(J:J+JB-1) * U11^{-1}
-C (row solve with upper unit)
-        CALL DTRSV( 'U','T','U',
-     $        JB,
-     $        A( J, J ), LDA,
-     $        W( J ), 1 )
-C ------------------------------------------------------------
-C W(J+JB:N) -= W(J:J+JB-1) * U12
+C Update W(J+JB:N) = W(J+JB:N) - (W(J:J+JB-1) / U_II) * U12
          IF ( N2 .GT. 0 ) THEN
+            CALL DCOPY( JB, W( J ), 1, WORK, 1 )
+            CALL DTRSV( 'U', 'T', 'N',
+     $                  JB, A( J, J ), LDA, WORK, 1 )
             CALL DGEMV( 'T',
-     $           JB, N2,
-     $           -ONE,
-     $           A( J, J+JB ), LDA,
-     $           W( J ), 1,
-     $           ONE,
-     $           W( J+JB ), 1 )
+     $                  JB, N2,
+     $                  -ONE,
+     $                  A( J, J+JB ), LDA,
+     $                  WORK, 1,
+     $                  ONE,
+     $                  W( J+JB ), 1 )
          END IF
 
  10   CONTINUE
