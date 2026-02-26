@@ -4,7 +4,7 @@ function build_mex()
     fprintf('=== Compiling Fortran to objects ===\n');
     fortran_files = { ...
         "dmmtf2.f", "dmmtrf.f", "dmmtrff.f", "dmmtrf2.f", ...
-        "dmltf2.f", "dmltrf.f", "dmltrff.f", ... # TODO: "dmltrf2.f", ...
+        "dmltf2.f", "dmltrf.f", "dmltrff.f", "dmltrf2.f", ...
         "dgetf2.f", "dgetrf.f", "dgetrf2.f"};
 
     for i = 1:length(fortran_files)
@@ -28,9 +28,9 @@ function build_mex()
     link_gateway("dmmtrff", {"dmmtrf2"}, {"HAS_TRIPLET", "HAS_WORK", "HAS_NB", "WORK_SIZE_2NB"});
 
     link_gateway("dmltf2", {}, {"HAS_TRIPLET", "LEFT_TRIPLET"});
-    % link_gateway("dmltrf2", {}, {"HAS_TRIPLET", "HAS_WORK"});
+    link_gateway("dmltrf2", {}, {"HAS_TRIPLET", "HAS_WORK"});
     link_gateway("dmltrf", {"dmltf2"}, {"HAS_TRIPLET", "LEFT_TRIPLET", "HAS_WORK", "HAS_NB"});
-    % link_gateway("dmltrff", {"dmltrf2"}, {"HAS_TRIPLET", "LEFT_TRIPLET", "HAS_WORK", "HAS_NB", "WORK_SIZE_2NB"});
+    link_gateway("dmltrff", {"dmltrf2"}, {"HAS_TRIPLET", "LEFT_TRIPLET", "HAS_WORK", "HAS_NB", "WORK_SIZE_2NB"});
 
     link_gateway("dgetf2", {}, {"HAS_IPIV"});
     link_gateway("dgetrf2", {}, {"HAS_IPIV"});
