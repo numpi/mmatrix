@@ -113,9 +113,9 @@
 *
    10 CONTINUE
 *
-       DO 30 J = 1, K
-         W(J) = W(J) / A(J,J)
-  30  CONTINUE
+*       DO 30 J = 1, K
+*         W(J) = W(J) / A(J,J)
+*  30  CONTINUE
       RETURN
 *
 *     End of DMLTF2
