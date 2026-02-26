@@ -71,7 +71,7 @@ for k = 1:nt
     % LEFT TRIPLET
     [results.tdmltf2(k), results.norms_dmltf2(k), ~] = run_dmltf2(A,b,x_exact,v,w);
     [results.tdmltrf(k), results.norms_dmltrf(k), ~] = run_dmltrf(A,b,x_exact,v,w,nb);
-    [results.tdmltrff(k), results.norms_dmltrff(k), ~] =  run_dmltrff_left(A,b,x_exact,v,w,nb);
+    [results.tdmltrff(k), results.norms_dmltrff(k), ~] =  run_dmltrff(A,b,x_exact,v,w,nb);
 
     [results.tgth(k), results.norms_gth(k), ~] = run_gth(A,b,x_exact,v,w);
     [results.tlu(k), results.norms_lu(k), ~] = run_lu(A,b,x_exact);
@@ -150,7 +150,7 @@ tic; [Af,info] = dmltrf_mex(A,v,w,nb); time = toc;
 x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
 end
 
-function [time, rel_error, info] = run_dmltrff_left(A,b,x_exact,v,w,nb)
+function [time, rel_error, info] = run_dmltrff(A,b,x_exact,v,w,nb)
 % RUN_DMLTRFF (Left)
 tic; [Af,info] = dmltrff_mex(A,v,w,nb); time = toc;
 x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
