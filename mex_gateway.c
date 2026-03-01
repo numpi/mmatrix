@@ -1,3 +1,20 @@
+/* --------------------------------------------------
+   Generic Lapack factorization Mex function wrapper
+
+   This code contains a Mex wrapper around a Fortran subroutine
+   specified in the macro FUNNAME
+   
+   Inputs:
+   1 numeric (A) or 3 (A,v,w) if HAS_TRIPLET
+   followed by non-numeric NB if HAS_NB
+
+   Outputs:
+   1 numeric (A) or 2 (A,ipiv) if HAS_IPIV
+   followed by info (optional) and w (optional) if HAS_TRIPLET
+
+-------------------------------------------------- */
+
+
 #include "mex.h"
 
 #ifndef FUNNAME
@@ -30,18 +47,17 @@ extern void F77_NAME(FUNNAME)(mwSignedIndex *m, mwSignedIndex *n,
 #endif                              
                               mwSignedIndex *info);
 
-/* --------------------------------------------------
-   Generic Lapack factorization function wrapper
-   
-   inputs:
-   1 numeric (A) or 3 (A,v,w) if HAS_TRIPLET
-   followed by non-numeric NB if HAS_NB
 
-   outputs:
-   1 numeric (A) or 2 (A,ipiv) if HAS_IPIV
-   followed by info (optional) and w (optional) if HAS_TRIPLET
-
--------------------------------------------------- */
+#ifdef HAS_NB
+/* LAPACK blocksize query helper (ILAENV) */
+extern mwSignedIndex F77_NAME(ilaenv)(mwSignedIndex *ispec,
+                              const char *name,
+                              const char *opts,
+                              mwSignedIndex *n1,
+                              mwSignedIndex *n2,
+                              mwSignedIndex *n3,
+                              mwSignedIndex *n4);
+#endif
 
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
@@ -49,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --------------------------------------------------
        Argument checking
     -------------------------------------------------- */
-    int numinputs = 1; /*numeric inputs: A or A,v,w */
+    int numinputs = 1; /*numeric inputs: A or A, v, w */
 #ifdef HAS_TRIPLET
     numinputs += 2;
 #endif
@@ -67,7 +83,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     nonnumoutputs += 1;
 #endif
  
-    if (nrhs != numinputs+nonnuminputs)
+    if ((nrhs < numinputs ) || (nrhs > numinputs+nonnuminputs))
         mexErrMsgIdAndTxt(FUNNAME_STR ":nrhs",
                           "Wrong number of inputs");
 
@@ -98,10 +114,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSize n = mxGetN(prhs[0]);
     mwSize minmn = m < n ? m : n;
 
-    if (m != n)
-        mexErrMsgIdAndTxt(FUNNAME_STR ":square",
-                          "A must be square.");
-
 #ifdef HAS_TRIPLET
 
 #ifdef LEFT_TRIPLET
@@ -110,21 +122,29 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #else
     mwSize vlength = n;
     mwSize wlength = m;
-#endif    
+#endif   /*LEFT_TRIPLET*/
     if (mxGetNumberOfElements(prhs[1]) != vlength)
         mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
                           "v has the wrong length.");
     if (mxGetNumberOfElements(prhs[2]) != wlength)
         mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
                           "w has the wrong length.");
-#endif
+#endif  /*HAS_TRIPLET*/
 
     mwSignedIndex M   = (mwSignedIndex)m;
     mwSignedIndex N   = (mwSignedIndex)n;
     mwSignedIndex worksize = (mwSignedIndex)minmn;
     mwSignedIndex lda = M;
 #ifdef HAS_NB
-    mwSignedIndex nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
+    mwSignedIndex nb;
+    mwSignedIndex one = -1;
+    mwSignedIndex minus_one = -1;
+    
+    if (nrhs > numinputs)
+        nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
+    else
+        nb = F77_NAME(ilaenv)(&one, "DGETRF", " ", &M, &N, &minus_one, &minus_one);
+
     worksize = nb;
 #endif
 #ifdef WORK_SIZE_2NB
@@ -182,7 +202,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
 #ifdef HAS_WORK
     /* --------------------------------------------------
-       Cleanup work array
+       Cleanup used arrays, apart from the ones
+       that are returned.
     -------------------------------------------------- */
     if (work) { mxFree(work); work = NULL; }
 #endif
@@ -199,9 +220,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
         mxDestroyArray(ipivp);
 #endif
 
-    /* --------------------------------------------------
-       info output if requested
-    -------------------------------------------------- */
     if (nlhs >= numoutputs + 1)
         plhs[numoutputs] = mxCreateDoubleScalar((double)info);
 

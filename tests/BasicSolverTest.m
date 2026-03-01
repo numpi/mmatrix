@@ -69,6 +69,11 @@ function testDmmtrf(testCase)
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     end
+    % test also with the default block size
+    LU = dmmtrf_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 end
 
 function testDmmtrff(testCase)
@@ -82,6 +87,11 @@ function testDmmtrff(testCase)
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     end
+    % test also with the default block size
+    LU = dmmtrff_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 end
 
 function testDgetf2(testCase)
