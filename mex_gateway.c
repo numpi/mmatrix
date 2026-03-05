@@ -55,6 +55,8 @@ extern void F77_NAME(FUNNAME)(mwSignedIndex *m, mwSignedIndex *n,
 #endif                              
                               mwSignedIndex *info);
 
+//extern void F77_NAME(DLASWP)(TODO)
+
 
 #ifdef HAS_NB
 /* LAPACK blocksize query helper (ILAENV) */
@@ -136,6 +138,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSize m = mxGetM(prhs[0]);
     mwSize n = mxGetN(prhs[0]);
     mwSize minmn = m < n ? m : n;
+    mwSignedIndex M   = (mwSignedIndex)m; /*Lapack wants these with a different type (signed int)*/
+    mwSignedIndex N   = (mwSignedIndex)n; /*Uppercase = signed version*/
+    mwSignedIndex LDA = M;
 
 #ifdef HAS_TRIPLET
 #ifdef LEFT_TRIPLET
@@ -158,12 +163,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (mxGetM(prhs[b_position]) != n)
         mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
                           "wrong size(b, 1).");
+    mwSignedIndex NRHS   = (mwSignedIndex)nrhs;
+    mwSignedIndex LDB = N;
 #endif
 
-    mwSignedIndex M   = (mwSignedIndex)m;
-    mwSignedIndex N   = (mwSignedIndex)n;
     mwSignedIndex worksize = (mwSignedIndex)minmn;
-    mwSignedIndex lda = M;
+    
 #ifdef HAS_NB
     mwSignedIndex nb;
     mwSignedIndex one = -1;
@@ -199,6 +204,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     double *w = mxGetPr(wp);    
 #endif
 #ifdef SOLVE_RHS
+    /* --------------------------------------------------
+       Duplicate b (DTRSV overwrites b with x)
+    -------------------------------------------------- */
     mxArray *bp = mxDuplicateArray(prhs[b_position]);
     double *b = mxGetPr(bp);
 #endif
@@ -218,7 +226,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --------------------------------------------------
        Call Fortran
     -------------------------------------------------- */
-    F77_NAME(FUNNAME)(&M, &N, A, &lda,
+    F77_NAME(FUNNAME)(&M, &N, A, &LDA,
 #ifdef HAS_TRIPLET                      
                       (double *)v, w,
 #endif                      
@@ -234,7 +242,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
                       &info);
 
 #ifdef SOLVE_RHS
-    TODO: use factorization to solve the system
+    /* --------------------------------------------------
+       Use factorization to solve the linear system
+    -------------------------------------------------- */
 #endif
 
 #ifdef HAS_WORK
