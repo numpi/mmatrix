@@ -145,3 +145,56 @@ function testDmltf2(testCase)
     testCase.verifyEqual(info, 0);
     testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
 end
+
+function testDmltrf2(testCase)
+    rng(0);
+    n = 4;
+    [A, v, w] = randtriplet(n, left=true);
+    [LU, info, outw] = dmltrf2_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    testCase.verifyEqual(info, 0);
+    testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+end
+
+function testDmltrf(testCase)
+    rng(0);
+    n = 4;
+    [A, v, w] = randtriplet(n, left=true);
+    % try different block sizes
+    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
+        [LU, info, outw] = dmltrf_mex(A, v, w, blocksize);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+    end
+    % test also with the default block size
+    LU = dmltrf_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+end
+
+function testDmltrff(testCase)
+    rng(0);
+    n = 4;
+    [A, v, w] = randtriplet(n, left=true);
+    % try different block sizes
+    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
+        [LU info outw] = dmltrff_mex(A, v, w, blocksize);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+    end
+    % test also with the default block size
+    LU = dmltrff_mex(A, v, w);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+end
+
