@@ -5,12 +5,20 @@
    specified in the macro FUNNAME
    
    Inputs:
-   1 numeric (A) or 3 (A,v,w) if HAS_TRIPLET
-   followed by non-numeric NB if HAS_NB
+
+   Mandatory:
+   1 (A)
+   +2 (v,w) if HAS_TRIPLET
+   +1 (b) if SOLVE_RHS
+   Optional:
+   +1 (NB) if HAS_NB
 
    Outputs:
-   1 numeric (A) or 2 (A,ipiv) if HAS_IPIV
-   followed by info (optional) and w (optional) if HAS_TRIPLET
+   1 (x) if SOLVE_RHS
+   +1 (A)
+   +1 (ipiv) if HAS_IPIV
+   +1 (info)
+   +1 (w) if HAS_TRIPLET
 
 -------------------------------------------------- */
 
@@ -65,29 +73,36 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --------------------------------------------------
        Argument checking
     -------------------------------------------------- */
-    int numinputs = 1; /*numeric inputs: A or A, v, w */
+    int min_inputs = 1;
+    int optional_inputs = 0;
+    int b_position = 2; /*position of input b (if it exists)*/
 #ifdef HAS_TRIPLET
-    numinputs += 2;
+    min_inputs += 2;
+    b_position += 2;
 #endif
-    int nonnuminputs = 0; /*non-numeric inputs: nb*/
+#ifdef SOLVE_RHS
+    min_inputs += 1;
+#endif
 #ifdef HAS_NB
-    nonnuminputs += 1;
+    optional_inputs += 1;
 #endif
 
-    int numoutputs = 1; /*number of numeric outputs (A and maybe ipiv) */
-#ifdef HAS_IPIV
-    numoutputs += 1;
+    int max_outputs = 2; /*A and info*/ 
+#ifdef SOLVE_RHS
+    max_outputs += 1;
 #endif
-    int nonnumoutputs = 1; /*non-numeric outputs: info, w*/
+#ifdef HAS_IPIV
+    max_outputs += 1;
+#endif
 #ifdef HAS_TRIPLET
-    nonnumoutputs += 1;
+    max_outputs += 1;
 #endif
  
-    if ((nrhs < numinputs ) || (nrhs > numinputs+nonnuminputs))
+    if ((nrhs < min_inputs ) || (nrhs > min_inputs + optional_inputs))
         mexErrMsgIdAndTxt(FUNNAME_STR ":nrhs",
                           "Wrong number of inputs");
 
-    if (nlhs > numoutputs+nonnumoutputs)
+    if (nlhs > max_outputs)
         mexErrMsgIdAndTxt(FUNNAME_STR ":nlhs",
                           "Too many output arguments.");
 
@@ -99,9 +114,17 @@ void mexFunction(int nlhs, mxArray *plhs[],
         mexErrMsgIdAndTxt(FUNNAME_STR ":vw",
                           "v and w must be double vectors.");
 #endif
+#ifdef SOLVE_RHS
+    if (!mxIsDouble(prhs[b_position]))
+        mexErrMsgIdAndTxt(FUNNAME_STR ":b",
+                          "b must be a double vector or matrix.");
+#endif
     if (mxIsComplex(prhs[0]) 
 #ifdef HAS_TRIPLET        
         || mxIsComplex(prhs[1]) || mxIsComplex(prhs[2])
+#endif
+#ifdef SOLVE_RHS
+        || mxIsComplex(prhs[b_position])
 #endif        
        )
         mexErrMsgIdAndTxt(FUNNAME_STR ":complex",
@@ -115,7 +138,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSize minmn = m < n ? m : n;
 
 #ifdef HAS_TRIPLET
-
 #ifdef LEFT_TRIPLET
     mwSize vlength = m;
     mwSize wlength = n;
@@ -131,6 +153,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
                           "w has the wrong length.");
 #endif  /*HAS_TRIPLET*/
 
+#ifdef SOLVE_RHS
+    mwSize nrhs = mxGetN(prhs[b_position]);
+    if (mxGetM(prhs[b_position]) != n)
+        mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
+                          "wrong size(b, 1).");
+#endif
+
     mwSignedIndex M   = (mwSignedIndex)m;
     mwSignedIndex N   = (mwSignedIndex)n;
     mwSignedIndex worksize = (mwSignedIndex)minmn;
@@ -140,7 +169,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSignedIndex one = -1;
     mwSignedIndex minus_one = -1;
     
-    if (nrhs > numinputs)
+    if (nrhs > min_inputs)
         nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
     else
         nb = F77_NAME(ilaenv)(&one, "DGETRF", " ", &M, &N, &minus_one, &minus_one);
@@ -168,7 +197,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
     -------------------------------------------------- */
     mxArray *wp = mxDuplicateArray(prhs[2]);
     double *w = mxGetPr(wp);    
-#endif    
+#endif
+#ifdef SOLVE_RHS
+    mxArray *bp = mxDuplicateArray(prhs[b_position]);
+    double *b = mxGetPr(bp);
+#endif
 
 #ifdef HAS_WORK    
     /* Workspace */
@@ -200,6 +233,10 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif 
                       &info);
 
+#ifdef SOLVE_RHS
+    TODO: use factorization to solve the system
+#endif
+
 #ifdef HAS_WORK
     /* --------------------------------------------------
        Cleanup used arrays, apart from the ones
@@ -208,24 +245,37 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (work) { mxFree(work); work = NULL; }
 #endif
 
-    if (nlhs >= 1)
-        plhs[0] = Ap;
+    int filled_outputs = 0;
+#ifdef SOLVE_RHS
+    TODO
+#endif
+
+    if (nlhs > filled_outputs) {
+        plhs[filled_outputs] = Ap;
+        filled_outputs += 1;
+    }
     else
         mxDestroyArray(Ap);
 
 #ifdef HAS_IPIV
-    if (nlhs >= 2)
-        plhs[1] = ipivp;
+    if (nlhs > filled_outputs){
+        plhs[filled_outputs] = ipivp;
+        filled_outputs += 1;
+    }
     else
         mxDestroyArray(ipivp);
 #endif
 
-    if (nlhs >= numoutputs + 1)
-        plhs[numoutputs] = mxCreateDoubleScalar((double)info);
+    if (nlhs > filled_outputs){
+        plhs[filled_outputs] = mxCreateDoubleScalar((double)info);
+        filled_outputs += 1;
+    }
 
 #ifdef HAS_TRIPLET
-    if (nlhs >= numoutputs + 2)
-        plhs[numoutputs+1] = wp;
+    if (nlhs >= filled_outputs){
+        plhs[filled_outputs] = wp;
+        filled_outputs += 1;
+    }
     else
         mxDestroyArray(wp);
 #endif    

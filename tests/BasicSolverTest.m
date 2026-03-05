@@ -133,15 +133,15 @@ function testDmltf2(testCase)
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     % test with more outputs
-    [LU, info] = dmmtf2_mex(A, v, w);
+    [LU, info] = dmltf2_mex(A, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);    
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     testCase.verifyEqual(info, 0);
-    [LU, info, outw] = dmmtf2_mex(A, v, w);
+    [LU, info, outw] = dmltf2_mex(A, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     testCase.verifyEqual(info, 0);
-    % testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
+    testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
 end
