@@ -1,40 +1,35 @@
-C *********************************************************************
-C *  DMLTRFF (LEFT BLOCKED GTH using DMLTRF2 inside)                  *
-C *  DMLTRFF computes a recursive blocked GTH factorization for a     *
-C *  given M-matrix A and vectors V and W satisfying V'*A = W'.       *
-C *                                                                   *
-C *  Recursive blocked factorization of an M-by-N matrix:             *
-C *                                                                   *
-C *        A = L * U                                                  *
-C *                                                                   *
-C *  where:                                                           *
-C *     - L is lower triangular with unit diagonal (M x K)            *
-C *     - U is upper triangular (K x N)                               *
-C *     - K = min(M,N)                                                *
-C *********************************************************************
-      SUBROUTINE DMLTRFF( M, N, A, LDA, V, W, WORK, NB, INFO )
-
-C     .. Scalar Arguments ..
+      SUBROUTINE DMLTRFF( M, N, A, LDA, V, W, NB, INFO )
+C ------------------------------------------------------------
+C Blocked GTH factorization using DMLTRF2.
+C
+C v*A = w  (v,w row vectors)
+C
+C Partition:
+C
+C     A = [ A11 A12 ]
+C         [ A21 A22 ]
+C
+C     v = [ v1 v2 ],  w = [ w1 w2 ]
+C
+C Steps:
+C 1) w1 = w1 - v2*A21
+C 2) [L11, U11, w_out] = DMLTRF2(A11, v1, w1)
+C 3) U12 = L11 \ A12
+C 4) L21 = A21 / U11
+C 5) A22 = A22 - L21*U12
+C 6) w2 = w2 - w_out * U12
+C ------------------------------------------------------------
       INTEGER            M, N, LDA, NB, INFO
+      DOUBLE PRECISION   A(LDA,*), V(*), W(*)
 
-C     .. Array Arguments ..
-      DOUBLE PRECISION   A( LDA, * ), V( * ), W( * ), WORK( * )
-
-C     .. Local Scalars ..
       INTEGER            J, JB, K, M2, N2, IINFO
-
-C     .. Parameters ..
       DOUBLE PRECISION   ONE
-      PARAMETER          ( ONE = 1.0D0 )
+      PARAMETER          (ONE = 1.0D0)
 
-C     .. External Subroutines ..
-      EXTERNAL           DMLTRF2, DGEMM, DGEMV, DTRSM, DTRSV, DCOPY
-      EXTERNAL           XERBLA
-      
-C     .. Intrinsic Functions ..
+      EXTERNAL           DMLTRF2, DGEMM, DGEMV, DTRSM
       INTRINSIC          MIN, MAX
 C ------------------------------------------------------------
-C  Test input parameters
+C Test input parameters
       INFO = 0
       IF ( M .LT. 0 ) THEN
          INFO = -1
@@ -43,81 +38,85 @@ C  Test input parameters
       ELSE IF ( LDA .LT. MAX(1,M) ) THEN
          INFO = -4
       ELSE IF ( NB .LT. 1 ) THEN
-         INFO = -7
-      END IF
-      IF ( INFO .NE. 0 ) THEN
-         CALL XERBLA( 'DMLTRFF', -INFO )
-         RETURN
+         INFO = -6
       END IF
 
+      IF ( INFO .NE. 0 ) RETURN
+C ------------------------------------------------------------
+C Factorization size
       K = MIN( M, N )
       IF ( K .EQ. 0 ) RETURN
-
+C ------------------------------------------------------------
+C Use unblocked code if NB small
       IF ( NB .EQ. 1 .OR. NB .GE. K ) THEN
-         CALL DMLTRF2( M, N, A, LDA, V, W, WORK, INFO )
+         CALL DMLTRF2( M, N, A, LDA, V, W, INFO )
          RETURN
       END IF
 C ------------------------------------------------------------
-C Blocked loop
+C Main blocked loop
       DO 10 J = 1, K, NB
-
-         JB = MIN( NB, K - J + 1 )
-         M2 = M - (J + JB) + 1
-         N2 = N - (J + JB) + 1
+         JB = MIN( NB, K-J+1 )
+         M2 = M - J - JB + 1
+         N2 = N - J - JB + 1
 C ------------------------------------------------------------
-C Compute w_hat = W(J:J+JB-1) - V(J+JB:M)' * A(J+JB:M, J:J+JB-1)
-         CALL DCOPY( JB, W(J), 1, WORK, 1 )
+C Compute w1 = w1 - v2* A21
+C ------------------------------------------------------------
          IF ( M2 .GT. 0 ) THEN
             CALL DGEMV( 'T', M2, JB, -ONE,
-     $                  A(J+JB, J), LDA,
+     $                  A(J+JB,J), LDA,
      $                  V(J+JB), 1,
-     $                  ONE, WORK, 1 )
+     $                  ONE, W(J), 1 )
          END IF
 C ------------------------------------------------------------
-C Factor diagonal block (LEFT recursive)
+C Factor diagonal block
+C ------------------------------------------------------------
          CALL DMLTRF2( JB, JB, A(J,J), LDA,
-     $                 V(J), WORK, WORK(JB+1), IINFO )
+     $                 V(J), W(J), IINFO )
 
          IF ( INFO .EQ. 0 .AND. IINFO .GT. 0 )
      $        INFO = IINFO + J - 1
 C ------------------------------------------------------------
-C U12 = L11 \ A12  (L11 is unit lower triangular)
+C Compute U12 = L11^{-1} * A12
+C ------------------------------------------------------------
          IF ( N2 .GT. 0 ) THEN
-            CALL DTRSM( 'L', 'L', 'N', 'U',
+            CALL DTRSM( 'L','L','N','U',
      $                  JB, N2, ONE,
      $                  A(J,J), LDA,
      $                  A(J,J+JB), LDA )
          END IF
 C ------------------------------------------------------------
-C L21 = A21 / U11  (U11 is upper triangular)
+C Compute L21 = A21 * U11^{-1}
+C ------------------------------------------------------------
          IF ( M2 .GT. 0 ) THEN
-            CALL DTRSM( 'R', 'U', 'N', 'N',
+            CALL DTRSM( 'R','U','N','N',
      $                  M2, JB, ONE,
      $                  A(J,J), LDA,
      $                  A(J+JB,J), LDA )
          END IF
 C ------------------------------------------------------------
-C Schur complement: A22 = A22 - L21 * U12
+C Update Schur complement
+C ------------------------------------------------------------
          IF ( M2 .GT. 0 .AND. N2 .GT. 0 ) THEN
-            CALL DGEMM( 'N', 'N', M2, N2, JB, -ONE,
+            CALL DGEMM( 'N','N',
+     $                  M2, N2, JB, -ONE,
      $                  A(J+JB,J), LDA,
      $                  A(J,J+JB), LDA,
-     $                  ONE, A(J+JB,J+JB), LDA )
+     $                  ONE,
+     $                  A(J+JB,J+JB), LDA )
          END IF
 C ------------------------------------------------------------
-C Update W(J+JB:N) = W(J+JB:N) - (W(J:J+JB-1) / U11) * U12
+C Update w2 using w_out returned by DMLTRF2
+C ------------------------------------------------------------
          IF ( N2 .GT. 0 ) THEN
-            CALL DCOPY( JB, W(J), 1, WORK, 1 )
-            CALL DTRSV( 'U', 'T', 'N',
-     $                  JB, A(J,J), LDA, WORK, 1 )
-            CALL DGEMV( 'T', JB, N2, -ONE,
+            CALL DGEMV( 'T',
+     $                  JB, N2, -ONE,
      $                  A(J,J+JB), LDA,
-     $                  WORK, 1,
-     $                  ONE, W(J+JB), 1 )
+     $                  W(J), 1,
+     $                  ONE,
+     $                  W(J+JB), 1 )
          END IF
 
-   10 CONTINUE
+ 10   CONTINUE
 
       RETURN
       END
-
