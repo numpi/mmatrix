@@ -1,6 +1,7 @@
-C  DMLTRF2 - Recursive GTH factorization (LEFT CASE)
-C ------------------------------------------------------------
+
       RECURSIVE SUBROUTINE DMLTRF2(M, N, A, LDA, V, W, INFO)
+C  DMLTRF2 - Recursive GTH factorization (LEFT CASE)
+C ------------------------------------------------------------      
       INTEGER            M, N, LDA, INFO
       DOUBLE PRECISION   A(LDA,*), V(*), W(*)
 
