@@ -12,7 +12,7 @@ C
 C     v = [ v1 v2 ],  w = [ w1 w2 ]
 C
 C Steps:
-C 1) w1 = w1 - v2*A21
+C 1) w1 = w1 - v2*A21 (It seems this computation is not needed for the first block, so lines 64-69 can be removed.)
 C 2) [L11, U11, w_out] = DMLTRF2(A11, v1, w1)
 C 3) U12 = L11 \ A12
 C 4) L21 = A21 / U11
