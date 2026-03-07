@@ -61,12 +61,12 @@ C Main blocked loop
 C ------------------------------------------------------------
 C Compute w1 = w1 - v2* A21
 C ------------------------------------------------------------
-         IF ( M2 .GT. 0 ) THEN
-            CALL DGEMV( 'T', M2, JB, -ONE,
-     $                  A(J+JB,J), LDA,
-     $                  V(J+JB), 1,
-     $                  ONE, W(J), 1 )
-         END IF
+C         IF ( M2 .GT. 0 ) THEN
+C            CALL DGEMV( 'T', M2, JB, -ONE,
+C     $                  A(J+JB,J), LDA,
+C     $                  V(J+JB), 1,
+C     $                  ONE, W(J), 1 )
+C         END IF
 C ------------------------------------------------------------
 C Factor diagonal block
 C ------------------------------------------------------------
