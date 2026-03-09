@@ -1,5 +1,14 @@
 name: Build, Test and Release MEX
 
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   compile-test-package:
     strategy:
