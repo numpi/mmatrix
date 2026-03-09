@@ -55,11 +55,7 @@ extern void F77_NAME(FUNNAME)(mwSignedIndex *m, mwSignedIndex *n,
 #endif                              
                               mwSignedIndex *info);
 
-//extern void F77_NAME(DLASWP)(TODO)
-
-
-#ifdef HAS_NB
-/* LAPACK blocksize query helper (ILAENV) */
+/* LAPACK function signatures */
 extern mwSignedIndex F77_NAME(ilaenv)(mwSignedIndex *ispec,
                               const char *name,
                               const char *opts,
@@ -67,7 +63,16 @@ extern mwSignedIndex F77_NAME(ilaenv)(mwSignedIndex *ispec,
                               mwSignedIndex *n2,
                               mwSignedIndex *n3,
                               mwSignedIndex *n4);
-#endif
+
+extern void F77_NAME(dlaswp)(mwSignedIndex *n, double *A, mwSignedIndex *lda,
+                             mwSignedIndex *k1, mwSignedIndex *k2,
+                             mwSignedIndex *ipiv, mwSignedIndex *incx);
+
+extern void F77_NAME(dtrsm)(const char *side, const char *uplo, const char *transa,
+                             const char *diag, mwSignedIndex *m, mwSignedIndex *n,
+                             const double *alpha, const double *A, mwSignedIndex *lda,
+                             double *B, mwSignedIndex *ldb);
+
 
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
@@ -77,7 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     -------------------------------------------------- */
     int min_inputs = 1;
     int optional_inputs = 0;
-    int b_position = 2; /*position of input b (if it exists)*/
+    int b_position = 1; /*position of input b (if it exists); 1 = second input*/
 #ifdef HAS_TRIPLET
     min_inputs += 2;
     b_position += 2;
@@ -135,6 +140,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --------------------------------------------------
        Dimensions
     -------------------------------------------------- */
+    mwSignedIndex one = 1;
+    mwSignedIndex minus_one = -1;
     mwSize m = mxGetM(prhs[0]);
     mwSize n = mxGetN(prhs[0]);
     mwSize minmn = m < n ? m : n;
@@ -159,11 +166,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif  /*HAS_TRIPLET*/
 
 #ifdef SOLVE_RHS
-    mwSize nrhs = mxGetN(prhs[b_position]);
+    mwSize sizerhs = mxGetN(prhs[b_position]);
     if (mxGetM(prhs[b_position]) != n)
         mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
                           "wrong size(b, 1).");
-    mwSignedIndex NRHS   = (mwSignedIndex)nrhs;
+    mwSignedIndex SIZERHS   = (mwSignedIndex)sizerhs;
     mwSignedIndex LDB = N;
 #endif
 
@@ -171,8 +178,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
 #ifdef HAS_NB
     mwSignedIndex nb;
-    mwSignedIndex one = -1;
-    mwSignedIndex minus_one = -1;
     
     if (nrhs > min_inputs)
         nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
@@ -205,7 +210,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif
 #ifdef SOLVE_RHS
     /* --------------------------------------------------
-       Duplicate b (DTRSV overwrites b with x)
+       Duplicate b (we will overwrites b with x)
     -------------------------------------------------- */
     mxArray *bp = mxDuplicateArray(prhs[b_position]);
     double *b = mxGetPr(bp);
@@ -242,22 +247,40 @@ void mexFunction(int nlhs, mxArray *plhs[],
                       &info);
 
 #ifdef SOLVE_RHS
+    double oneD0 = 1.0;
     /* --------------------------------------------------
        Use factorization to solve the linear system
     -------------------------------------------------- */
-#endif
+#ifdef HAS_IPIV
+    F77_NAME(dlaswp)(&SIZERHS, b, &LDB, &one, &minmn, ipiv, &one);
+#endif /*HAS_IPIV*/
+    F77_NAME(dtrsm)("L", "L", "N", "U",
+                    &N, &SIZERHS, &oneD0, A, &LDA, b, &LDB);
 
-#ifdef HAS_WORK
+    F77_NAME(dtrsm)("L", "U", "N", "N",
+                    &N, &SIZERHS, &oneD0, A, &LDA, b, &LDB);
+
+#endif /*SOLVE_RHS*/
+
     /* --------------------------------------------------
        Cleanup used arrays, apart from the ones
        that are returned.
     -------------------------------------------------- */
+
+#ifdef HAS_WORK
+
     if (work) { mxFree(work); work = NULL; }
 #endif
 
     int filled_outputs = 0;
+ 
 #ifdef SOLVE_RHS
-    TODO
+    if (nlhs > filled_outputs) {
+        plhs[filled_outputs] = bp;
+        filled_outputs += 1;
+    }
+    else
+        mxDestroyArray(bp);
 #endif
 
     if (nlhs > filled_outputs) {

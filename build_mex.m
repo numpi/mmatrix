@@ -35,7 +35,7 @@ function build_mex()
     link_gateway("dgetf2", {}, {"HAS_IPIV"});
     link_gateway("dgetrf2", {}, {"HAS_IPIV"});
     link_gateway("dgetrf", {"dgetrf2"}, {"HAS_IPIV"});
-
+    
     fprintf('\n=== All compilations complete! ===\n');
 
     function link_gateway(funname, dependencies, switches)
@@ -43,6 +43,9 @@ function build_mex()
         dep_objects = cellfun(@(x) x+"."+objext, dependencies, UniformOutput=false);
         additional_parameters = cellfun(@(x) "-D"+x, switches, UniformOutput=false);
         mex("-largeArrayDims", "mex_gateway.c", funname+"."+objext, dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", funname+"_mex", "-DFUNNAME="+funname, additional_parameters{:});
+        % build also the _solve version
+        solvername = funname + "_mexsolve";
+        fprintf('Linking %s...\n', solvername);
+        mex("-largeArrayDims", "mex_gateway.c", funname+"."+objext, dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE_RHS");
     end
-
 end
