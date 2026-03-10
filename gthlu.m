@@ -38,6 +38,7 @@ switch isleft
             w(1,k+1:end) = w(1,k+1:end) - w(1,k)/pivot * U(k,k+1:end);
             U(k+1:end,k+1:end) = U(k+1:end,k+1:end) - L(k+1:end,k) * U(k,k+1:end);
         end
+        U(end,end) = w(end) / v(end);
         if nargout > 2
             w = w / diag(diag(U));
         end
