@@ -29,14 +29,15 @@ switch isleft
     case 'left'
         %assertVectorsAlmostEqual(v(:)'*M,w(:)','relative',sqrt(eps)*norm(M,1)); %checks that M*v=w holds at least in norm
         if n==1 % base case
-            L = M / M(1,1);
+            M(1,1) = (w(1) - v(1,2:end)*M(2:end,1)) / v(1);
+            L = [1; M(2:end,1) / M(1,1)];
             U = M(1,1);
             w = w / M(1,1);
             return
         end
         L = eye(m, n);
         U = zeros(n,n);
-        n2 = floor(n/2);        
+        n2 = floor(n/2);
         [L(:,1:n2), U(1:n2,1:n2), w(1,1:n2)] = gthlu_recursive(M(:, 1:n2), v, w(1, 1:n2), 'left');
         U(1:n2, n2+1:end) = L(1:n2,1:n2) \ M(1:n2, n2+1:end);
         w(1, n2+1:end) = w(1, n2+1:end) - w(1,1:n2) * U(1:n2, n2+1:end);
