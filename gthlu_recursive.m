@@ -44,20 +44,21 @@ switch isleft
         M(n2+1:end,n2+1:end) = M(n2+1:end,n2+1:end) - L(n2+1:end,1:n2) * U(1:n2, n2+1:end);
         [L(n2+1:end, n2+1:end), U(n2+1:end, n2+1:end), w(1,n2+1:end)] = gthlu_recursive(M(n2+1:end, n2+1:end), v(1, n2+1:end), w(1, n2+1:end), 'left');
     case 'right'
-        error('not implemented yet')
-        % L=eye(n);
-        % U = M;
-        % %assertVectorsAlmostEqual(U*v,w,'relative',sqrt(eps)*norm(M,1)); %checks that M*v=w holds at least in norm
-        % for k=1:n-1
-        %     pivot = (w(k) - U(k,k+1:end)*v(k+1:end)) / v(k);
-        %     U(k,k) = pivot;
-        %     L(k+1:end,k) = U(k+1:end,k) / pivot;
-        %     U(k+1:end,k) = 0;
-        %     w(k+1:end) = w(k+1:end) - L(k+1:end,k)*w(k);
-        %     U(k+1:end,k+1:end) = U(k+1:end,k+1:end) - L(k+1:end,k) * U(k,k+1:end); %will write inaccurate values on the diagonal, but we don't care since we'll never use them
-        % end
-        % U(end,end) = w(end) / v(end);
-
+        if n == 1 % base case
+            U = M(1,1);
+            L = [1; M(2:end,1)/U];
+            w(2:end) = w(2:end) - L(2:end)*w(1);
+          return
+        end
+        L = eye(m,n);
+        U = zeros(n,n);
+        n1 = floor(n/2);
+        [L(1:n1,1:n1), U(1:n1,1:n1), w(1:n1)] = gthlu_recursive(M(1:n1,1:n1), v(1:n1), w(1:n1));
+        U(1:n1,n1+1:n) = L(1:n1,1:n1) \ M(1:n1,n1+1:n);
+        L(n1+1:m,1:n1) = M(n1+1:m,1:n1) / U(1:n1,1:n1);
+        M(n1+1:m,n1+1:n) = M(n1+1:m,n1+1:n) - L(n1+1:m,1:n1) * U(1:n1,n1+1:n);
+        w(n1+1:m) = w(n1+1:m) - L(n1+1:m,1:n1) * w(1:n1);
+        [L(n1+1:m,n1+1:n), U(n1+1:n,n1+1:n), w(n1+1:m)] = gthlu_recursive(M(n1+1:m,n1+1:n), v(n1+1:n), w(n1+1:m));
     otherwise
         error('Wrong left/right specification');
 
