@@ -141,21 +141,14 @@ L = eye(n);
 U = zeros(n);
 for k = 1:nb:n
     kb = min(nb, n-k+1);I = k:k+kb-1; J = k+kb:n;
-    if isempty(J)
-        w_hat = w(I);
-    else
-        w_hat = w(I) - M(I,J)*v(J);
-    end
-    [L11,U11,w_out] = gthlu_recursive(M(I,I), v(I),w_hat);
+    [L11,U11,w_out] = gthlu_recursive(M(I,I), v(I),w(I));
     L(I,I) = L11;
     U(I,I) = U11;
     if isempty(J), continue; end
     U(I,J) = L11 \ M(I,J);
     L(J,I) = M(J,I) / U11;
     M(J,J) = M(J,J) - L(J,I) * U(I,J);
-    % w_scaled=[L11 \ w(I) , w_out + U(I,J)*v(J)]
-    % w_scaled shows that w_out is not equal to L11 \ w(I). We can use w_out+something
-    % which contains cancellations or we can solve a triangular system
+    % w_scaled=[L11 \ w(I) , w_out] % these two are equal, so I will think if we can modify dmmtrff based on this
     w(J) = w(J) - L(J,I) * (L11 \ w(I));
 end
 end
@@ -227,15 +220,15 @@ switch isleft
         n1 = floor(n/2);
         % recursive factorization of A11)
         [L(1:n1,1:n1), U(1:n1,1:n1), w(1:n1)] = gthlu_recursive(M(1:n1,1:n1), v(1:n1), w(1:n1));
-        % U12 = L11^{-1} * A12)
+        % U12 = L11^{-1} * A12
         U(1:n1,n1+1:n) = L(1:n1,1:n1) \ M(1:n1,n1+1:n);
-        % L21 = A21 * U11^{-1})
+        % L21 = A21 * U11^{-1}
         L(n1+1:m,1:n1) = M(n1+1:m,1:n1) / U(1:n1,1:n1);
         % A22 = A22 - L21*U12
         M(n1+1:m,n1+1:n) = M(n1+1:m,n1+1:n) - L(n1+1:m,1:n1) * U(1:n1,n1+1:n);
         % w2 = w2 - L21*w1
         w(n1+1:m) = w(n1+1:m) - L(n1+1:m,1:n1) * w(1:n1);
-        %  recursive factorization of A22)
+        %  recursive factorization of A22
         [L(n1+1:m,n1+1:n), U(n1+1:n,n1+1:n), w(n1+1:m)] = gthlu_recursive(M(n1+1:m,n1+1:n), v(n1+1:n), w(n1+1:m));
     otherwise
         error('Wrong left/right specification')
