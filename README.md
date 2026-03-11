@@ -30,4 +30,4 @@ To run a more detailed interactive demo:
 * `dmltf2.f`: basic unblocked (BLAS level-2) version.
 * `dmltrf2.f`: recursive cache-oblivious version.
 * `dmltrf.f`: blocked version (BLAS level-3) which calls `dmltf2.f` on the single blocks. Needs a temporary buffer `WORK` of size `nb`, where `nb` is the user-specified block size.
-* `dmltrff.f`: blocked version (BLAS level-3) which calls `dmltrf2.f` on the single blocks.
+* `dmltrff.f`: blocked version (BLAS level-3) which calls `dmltrf2.f` on the single blocks. Needs a temporary buffer `WORK` of size `nb`, where `nb` is the user-specified block size.
