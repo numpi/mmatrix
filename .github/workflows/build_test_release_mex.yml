@@ -9,6 +9,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Utilizes repository-stored secrets for MATLAB's batch-token licensing
+env:
+  MLM_LICENSE_TOKEN: ${{ secrets.MLM_LICENSE_TOKEN }}
+
 jobs:
   compile-test-package:
     strategy:
@@ -16,8 +20,6 @@ jobs:
         include:
           - os: ubuntu-latest
             label: linux
-          - os: macos-latest
-            label: macos
           - os: windows-latest
             label: windows
 
@@ -26,10 +28,28 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup MATLAB
+      - name: Install MinGW-w64 and zip (MSYS2)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: |
+            mingw-w64-x86_64-gcc-fortran
+                  
+      - name: Set paths for Mingw64
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "C:\\mingw64\\bin" >> $env:GITHUB_PATH
+          echo "MW_MINGW64_LOC=C:\\mingw64" >> $env:GITHUB_ENV
+
+      - name: Setup Matlab
         uses: matlab-actions/setup-matlab@v2
         with:
           cache: true
+
+      - name: Check mex setup
+        run: |
+          mex -v -setup FORTRAN
 
       - name: Build MEX and run tests
         uses: matlab-actions/run-command@v2
@@ -38,28 +58,37 @@ jobs:
             build_mex
             results = runtests('tests/');
             assertSuccess(results);
-
-      - name: Gather MEX files
-        shell: bash
-        run: |
-          mkdir mex
-          find . -name "*.mex*" -exec cp {} mex/ \;
-
-      - name: Create archive
-        shell: bash
-        run: |
-          zip -r mex-${{ matrix.label }}-${{ github.ref_name }}.zip mex
-
-      - name: Create release if needed
+      
+      - name: Upload MEX files
         if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes ""
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Upload release asset
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          gh release upload ${{ github.ref_name }} mex-${{ matrix.label }}-${{ github.ref_name }}.zip --clobber
-        env:
-          GH_TOKEN: ${{ github.token }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mex-${{ matrix.label }}
+          path: |
+            **/*.mex*
+  
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: compile-test-package
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Download Linux ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: mex-linux
+          path: .
+          skip-decompression: true
+  
+      - name: Download Windows ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: mex-windows
+          path: .
+          skip-decompression: true
+  
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
