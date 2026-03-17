@@ -1,4 +1,4 @@
-function [L, U, w]=gthlu_recursive(M, v, w, isleft)
+function [L, U, w] = gthlu_recursive(M, v, w, isleft)
 %computes an LU factorization of an M-matrix with the GTH trick
 %
 % [L, U, ww] = gthlu(M, v, w)
@@ -45,21 +45,30 @@ switch isleft
         [L(n2+1:end, n2+1:end), U(n2+1:end, n2+1:end), w(1,n2+1:end)] = gthlu_recursive(M(n2+1:end, n2+1:end), v(1, n2+1:end), w(1, n2+1:end), 'left');
     case 'right'
         if n == 1 % base case
-            U = M(1,1);
-            L = [1; M(2:end,1)/U];
-            w(2:end) = w(2:end) - L(2:end)*w(1);
-          return
+            U = w(1) / v(1);
+            L = [1; M(2:end,1) / U];
+            return
         end
         L = eye(m,n);
         U = zeros(n,n);
         n1 = floor(n/2);
+        % Save w1 
+        w1_old = w(1:n1);
+        % Update w1 = w1 - A12 * v2
+        w(1:n1) = w(1:n1) - M(1:n1,n1+1:n) * v(n1+1:n);
+        % factorization for A11
         [L(1:n1,1:n1), U(1:n1,1:n1), w(1:n1)] = gthlu_recursive(M(1:n1,1:n1), v(1:n1), w(1:n1));
+        w(1:n1) = w1_old;
+        % U12 = L11^{-1} * A12
         U(1:n1,n1+1:n) = L(1:n1,1:n1) \ M(1:n1,n1+1:n);
+        % L21 = A21 * U11^{-1}
         L(n1+1:m,1:n1) = M(n1+1:m,1:n1) / U(1:n1,1:n1);
-        M(n1+1:m,n1+1:n) = M(n1+1:m,n1+1:n) - L(n1+1:m,1:n1) * U(1:n1,n1+1:n);
+        % Schur complement A22
+        M(n1+1:m,n1+1:n) = M(n1+1:m,n1+1:n)- L(n1+1:m,1:n1) * U(1:n1,n1+1:n);
+        % w1 = L11^{-1} * w1
+        w(1:n1) = L(1:n1,1:n1) \ w(1:n1);
+        % w2 = w2 - L21 * w1
         w(n1+1:m) = w(n1+1:m) - L(n1+1:m,1:n1) * w(1:n1);
         [L(n1+1:m,n1+1:n), U(n1+1:n,n1+1:n), w(n1+1:m)] = gthlu_recursive(M(n1+1:m,n1+1:n), v(n1+1:n), w(n1+1:m));
-    otherwise
-        error('Wrong left/right specification');
-
-end        
+end
+end     
