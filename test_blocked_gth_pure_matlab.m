@@ -141,97 +141,21 @@ L = eye(n);
 U = zeros(n);
 for k = 1:nb:n
     kb = min(nb, n-k+1);I = k:k+kb-1; J = k+kb:n;
-    [L11,U11,w_out] = gthlu_recursive(M(I,I), v(I),w(I));
+    if isempty(J)
+        w_hat = w(I);
+    else
+        w_hat = w(I) - M(I,J) * v(J);
+    end
+    [L11, U11, w_out] = gthlu_recursive(M(I,I), v(I),w_hat);
     L(I,I) = L11;
     U(I,I) = U11;
     if isempty(J), continue; end
     U(I,J) = L11 \ M(I,J);
     L(J,I) = M(J,I) / U11;
     M(J,J) = M(J,J) - L(J,I) * U(I,J);
-    % w_scaled=[L11 \ w(I) , w_out] % these two are equal, so I will think if we can modify dmmtrff based on this
+    % w_scaled=[L11 \ w(I) , w_out]
     w(J) = w(J) - L(J,I) * (L11 \ w(I));
 end
 end
 %--------------------------------------------------------------------
-
-function [L, U, w] = gthlu_recursive(M, v, w, isleft)
-% Computes an LU factorization of an M-matrix with the GTH trick
-%
-% [L, U, ww] = gthlu_recursive(M, v, w)
-% [L, U, ww] = gthlu_recursive(M, v, w, 'left')
-%
-% given an M-matrix M and vectors v > 0, w >= 0 such that
-%
-%   right case:  M*v = w
-%   left case:   v'*M = w'
-%
-% computes a componentwise accurate LU factorization.
-%
-% The third output ww is:
-%   right case: ww = L \ w
-%   left case:  ww = w / U
-
-[m, n] = size(M);
-assert(m >= n);
-assert(length(v)==m);
-assert(length(w)==n);
-
-if n == 0
-    L = [];
-    U = [];
-    return
-end
-
-if not(exist('isleft','var'))
-    isleft = 'right';
-end
-
-switch isleft
-    case 'left'
-        if n==1 % base case
-            M(1,1) = (w(1) - v(1,2:end)*M(2:end,1)) / v(1);
-            L = [1; M(2:end,1) / M(1,1)];
-            U = M(1,1);
-            w = w / M(1,1);
-            return
-        end
-        L = eye(m, n);
-        U = zeros(n,n);
-        n2 = floor(n/2);
-        % factor first block
-        [L(:,1:n2), U(1:n2,1:n2), w(1,1:n2)] =gthlu_recursive(M(:,1:n2), v, w(1,1:n2), 'left');
-        % compute U12
-        U(1:n2,n2+1:end) = L(1:n2,1:n2) \ M(1:n2,n2+1:end);
-        % update w
-        w(1,n2+1:end) = w(1,n2+1:end) - w(1,1:n2) * U(1:n2,n2+1:end);
-        % Schur complement
-        M(n2+1:end,n2+1:end) = M(n2+1:end,n2+1:end)- L(n2+1:end,1:n2) * U(1:n2,n2+1:end);
-        % recurse on second block
-        [L(n2+1:end,n2+1:end), U(n2+1:end,n2+1:end), w(1,n2+1:end)] =gthlu_recursive(M(n2+1:end,n2+1:end),v(1,n2+1:end),w(1,n2+1:end),'left');
-    case 'right'
-        if n == 1 % base case
-            U = M(1,1);
-            L = [1; M(2:end,1)/U];
-            w(2:end) = w(2:end) - L(2:end)*w(1);
-            return
-        end
-        L = eye(m,n);
-        U = zeros(n,n);
-        n1 = floor(n/2);
-        % recursive factorization of A11)
-        [L(1:n1,1:n1), U(1:n1,1:n1), w(1:n1)] = gthlu_recursive(M(1:n1,1:n1), v(1:n1), w(1:n1));
-        % U12 = L11^{-1} * A12
-        U(1:n1,n1+1:n) = L(1:n1,1:n1) \ M(1:n1,n1+1:n);
-        % L21 = A21 * U11^{-1}
-        L(n1+1:m,1:n1) = M(n1+1:m,1:n1) / U(1:n1,1:n1);
-        % A22 = A22 - L21*U12
-        M(n1+1:m,n1+1:n) = M(n1+1:m,n1+1:n) - L(n1+1:m,1:n1) * U(1:n1,n1+1:n);
-        % w2 = w2 - L21*w1
-        w(n1+1:m) = w(n1+1:m) - L(n1+1:m,1:n1) * w(1:n1);
-        %  recursive factorization of A22
-        [L(n1+1:m,n1+1:n), U(n1+1:n,n1+1:n), w(n1+1:m)] = gthlu_recursive(M(n1+1:m,n1+1:n), v(n1+1:n), w(n1+1:m));
-    otherwise
-        error('Wrong left/right specification')
-end
-end
-
+ 
