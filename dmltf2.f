@@ -11,7 +11,6 @@
 *     L is M-by-K  
 *     U is K-by-N  
 *     K = MIN(M,N)
-*
 *  --------------------------------------------------------------------
 *
 *     .. Scalar Arguments ..
@@ -26,17 +25,17 @@
 *
 *     .. Local Scalars ..
       INTEGER            J, I, K, MJ, NJ
-      DOUBLE PRECISION   PIVOT, TEMP
+      DOUBLE PRECISION   PIVOT, TEMP, SFMIN 
 *
 *     .. External Functions ..
-      DOUBLE PRECISION   DDOT
-      EXTERNAL           DDOT
+      DOUBLE PRECISION   DDOT, DLAMCH
+      EXTERNAL           DDOT, DLAMCH
 *
 *     .. External Subroutines ..
-      EXTERNAL           DGER, DAXPY, XERBLA
+      EXTERNAL           DGER, DAXPY, DSCAL, XERBLA
 *
 *     .. Intrinsic Functions ..
-      INTRINSIC          MIN, MAX
+      INTRINSIC          MIN, MAX, ABS
 *
 *  --------------------------------------------------------------------
 *
@@ -63,6 +62,10 @@
 *
       K = MIN( M, N )
 *
+*     Get safe minimum
+*
+      SFMIN = DLAMCH('S')
+*
 *     Main GTH loop 
 *
       DO 10 J = 1, K
@@ -87,11 +90,14 @@
 *
 *        Compute L(j+1:M, j)
 *      
-         MJ = M - J
          IF ( MJ .GT. 0 ) THEN
-            DO 20 I = 1, MJ
-               A( J+I, J ) = A( J+I, J ) / PIVOT
-   20       CONTINUE
+            IF ( ABS(PIVOT) .GE. SFMIN ) THEN
+               CALL DSCAL( MJ, ONE/PIVOT, A( J+1, J ), 1 )
+            ELSE
+               DO 20 I = 1, MJ
+                  A( J+I, J ) = A( J+I, J ) / PIVOT
+   20          CONTINUE
+            END IF
          END IF
 *
 *        Update W(j+1:N) = W(j+1:N) - (W(j)/PIVOT) * U(j,j+1:N)
