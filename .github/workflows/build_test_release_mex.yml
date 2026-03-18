@@ -17,7 +17,7 @@ jobs:
   compile-test-package:
     strategy:
       matrix:
-        include:
+        include:  # we skip macos since there is no working fortran compiler there
           - os: ubuntu-latest
             label: linux
           - os: windows-latest
@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install MinGW-w64 and zip (MSYS2)
+      - name: Install MinGW-w64
         if: matrix.os == 'windows-latest'
         uses: msys2/setup-msys2@v2
         with:
@@ -78,17 +78,22 @@ jobs:
         with:
           name: mex-linux
           path: .
-          skip-decompression: true
   
       - name: Download Windows ZIP
         uses: actions/download-artifact@v4
         with:
           name: mex-windows
           path: .
-          skip-decompression: true
   
+      - name: Zip artifacts
+        shell: bash
+        run: |
+          (cd mex-linux && zip -r ../mex-linux.zip .)
+          (cd mex-windows && zip -r ../mex-windows.zip .)
+    
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            *.zip
+            mex-linux.zip
+            mex-windows.zip
