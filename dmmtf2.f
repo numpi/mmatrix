@@ -11,9 +11,6 @@
 *     L is M-by-K  
 *     U is K-by-N  
 *     K = MIN(M,N)
-*
- 
-*
 *  --------------------------------------------------------------------
 *
 *     .. Scalar Arguments ..
@@ -28,17 +25,17 @@
 *
 *     .. Local Scalars ..
       INTEGER            J, I, K, MJ, NJ
-      DOUBLE PRECISION   PIVOT, TEMP
+      DOUBLE PRECISION   PIVOT, TEMP, SFMIN
 *
 *     .. External Functions ..
-      DOUBLE PRECISION   DDOT
-      EXTERNAL           DDOT
+      DOUBLE PRECISION   DDOT, DLAMCH
+      EXTERNAL           DDOT, DLAMCH
 *
 *     .. External Subroutines ..
-      EXTERNAL           DGER, DAXPY, XERBLA
+      EXTERNAL           DGER, DAXPY, DSCAL, XERBLA
 *
 *     .. Intrinsic Functions ..
-      INTRINSIC          MIN, MAX
+      INTRINSIC          MIN, MAX, ABS
 *
 *  --------------------------------------------------------------------
 *
@@ -69,8 +66,7 @@
 *
       DO 10 J = 1, K
 *
-*        Compute GTH pivot:
-*        U(j,j) = ( w(j) - A(j,j+1:N)*v(j+1:N) ) / v(j)
+*        Compute U(j,j) = ( w(j) - A(j,j+1:N)*v(j+1:N) ) / v(j)
 *
          NJ = N - J
          IF ( NJ .GT. 0 ) THEN
@@ -88,13 +84,17 @@
             INFO = J
          END IF
 *
-*        Compute multipliers: L(j+1:M, j)
+*        Compute  L(j+1:M, j)
 *
          MJ = M - J
          IF ( MJ .GT. 0 ) THEN
-            DO 20 I = 1, MJ
-               A( J+I, J ) = A( J+I, J ) / PIVOT
-   20       CONTINUE
+            IF ( ABS(PIVOT) .GE. SFMIN ) THEN
+               CALL DSCAL( MJ, ONE/PIVOT, A( J+1, J ), 1 )
+            ELSE
+               DO 20 I = 1, MJ
+                  A( J+I, J ) = A( J+I, J ) / PIVOT
+   20          CONTINUE
+            END IF
          END IF
 *
 *        Update W(j+1:M) = W(j+1:M) - L21 * W(j)
@@ -103,8 +103,7 @@
             CALL DAXPY( MJ, -W(J), A( J+1, J ), 1, W( J+1 ), 1 )
          END IF
 *
-*        Update trailing submatrix:
-*        A(j+1:M, j+1:N) -= L21 * U12
+*        Update A(j+1:M, j+1:N) -= L21 * U12
 *
          IF ( MJ .GT. 0 .AND. NJ .GT. 0 ) THEN
             CALL DGER( MJ, NJ, -ONE,
