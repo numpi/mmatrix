@@ -1,5 +1,5 @@
 function main_matlab()
-%  MAIN_MATLAB Compare different factorization methods for FEM matrices
+%  Solves a linear system with different factorization methods
 %
 %   Methods compared:
 %   - GTH: pure MATLAB's GTH algorithm
@@ -11,166 +11,111 @@ function main_matlab()
 %   - dmltrff, dmmtrff: Blocked versions with dmltrf2 and dmmtrf2 inside
 
 % build_mex() % this complies fortran codes
+
 clc;
 fprintf('The condition number varies with σ = 10^{-k} for k = 1 to 12.\n\n');
-
+ 
 % Problem parameters
-params.n = 256;                  % Matrix size (n x n)
-params.nb = 64;                  % Block size for blocked algorithms
+params.n = 128;                   % Matrix size (n x n)
 params.sigmas = 10.^(-(1:12));   % Range of sigma values (affects conditioning)
 params.h = 1 / (params.n + 1);   % Grid spacing
 params.v = ones(params.n, 1);    % Vector v
 
 fprintf('Problem details:\n');
 fprintf('  Matrix size: %dx%d\n', params.n, params.n);
-fprintf('  Block size: %d\n', params.nb);
 fprintf('  Sigma range: 10^-1 to 10^-%d\n', length(params.sigmas));
 fprintf('  Grid spacing h = %.4f\n\n', params.h);
 
-% Run experiments
 results = run_experiments(params);
 create_fig(results);
-
 end
 
-function results = run_experiments(params)
-% RUN_EXPERIMENTS Perform the factorization experiments for all sigma values
+function r = run_experiments(params)
 
-% Extract parameters
-n = params.n; nb = params.nb; sigmas = params.sigmas; h = params.h; v = params.v;
+n = params.n; sigmas = params.sigmas; h = params.h; v = params.v;
 
+nt = length(sigmas);
+z = zeros(1,nt);
 
-nt = length(sigmas);z = zeros(1,nt);
-
-results.c = 1:nt;results.conds = z;
+r.c = 1:nt; r.conds = z;
 
 % Errors
-results.norms_gth    = z;results.norms_lu      = z;
-results.norms_dmmtf2 = z;results.norms_dmmtrf2 = z;results.norms_dmmtrf = z;results.norms_dmmtrff = z;
-results.norms_dmltf2 = z;results.norms_dmltrf2 = z;results.norms_dmltrf = z;results.norms_dmltrff = z;
+r.nrm_gth    = z; r.nrm_lu      = z;
+r.nrm_dmmtf2 = z; r.nrm_dmmtrf2 = z; r.nrm_dmmtrf = z; r.nrm_dmmtrff = z;
+r.nrm_dmltf2 = z; r.nrm_dmltrf2 = z; r.nrm_dmltrf = z; r.nrm_dmltrff = z;
 
 % Times
-results.tgth    = z;results.tlu      = z;
-results.tdmmtf2 = z;results.tdmmtrf2 = z;results.tdmmtrf = z;results.tdmmtrff = z;
-results.tdmltf2 = z;results.tdmltrf2 = z;results.tdmltrf = z;results.tdmltrff = z;
+r.tgth    = z; r.tlu      = z;
+r.tdmmtf2 = z; r.tdmmtrf2 = z; r.tdmmtrf = z; r.tdmmtrff = z;
+r.tdmltf2 = z; r.tdmltrf2 = z; r.tdmltrf = z; r.tdmltrff = z;
 
 for k = 1:nt
 
     sigma = sigmas(k);
-    % Create matrix and right-hand side
+
     [A,b,w] = create_fem_problem(n,h,sigma);
-    results.conds(k) = cond(A);
-    % Compute exact solution using high precision
+    r.conds(k) = cond(A);
+
     x_exact = exact_solution(A,v,w,b);
 
+    % GTH with right triplet
+    tic; [L,U] = gthlu(A,v,w); x = U\(L\b); r.tgth(k) = toc;
+    r.nrm_gth(k) = norm(x-x_exact)/norm(x_exact);
 
-    [results.tgth(k), results.norms_gth(k), ~] = run_gth(A,b,x_exact,v,w);
-    [results.tlu(k), results.norms_lu(k), ~] = run_lu(A,b,x_exact);
+    % LU
+    tic; [L,U] = lu(A); x = U\(L\b); r.tlu(k) = toc;
+    r.nrm_lu(k) = norm(x-x_exact)/norm(x_exact);
 
-    % RIGHT TRIPLET
-    [results.tdmmtf2(k), results.norms_dmmtf2(k), ~] = run_dmmtf2(A,b,x_exact,v,w);
-    [results.tdmmtrf2(k), results.norms_dmmtrf2(k), ~] = run_dmmtrf2(A,b,x_exact,v,w);
-    [results.tdmmtrf(k), results.norms_dmmtrf(k), ~] = run_dmmtrf(A,b,x_exact,v,w,nb);
-    [results.tdmmtrff(k), results.norms_dmmtrff(k), ~] = run_dmmtrff(A,b,x_exact,v,w,nb);
+    % RIGHT TRIPLET--------------------------------------------------------
+    tic; x = dmmtf2_mexsolve(A,v,w,b); r.tdmmtf2(k) = toc;
+    r.nrm_dmmtf2(k) = norm(x-x_exact)/norm(x_exact);
 
-    % LEFT TRIPLET
-    [results.tdmltf2(k), results.norms_dmltf2(k), ~] = run_dmltf2(A,b,x_exact,v,w);
-    [results.tdmltrf2(k), results.norms_dmltrf2(k), ~] = run_dmltrf2(A,b,x_exact,v,w);
-    [results.tdmltrf(k), results.norms_dmltrf(k), ~] = run_dmltrf(A,b,x_exact,v,w,nb);
-    [results.tdmltrff(k), results.norms_dmltrff(k), ~] =  run_dmltrff(A,b,x_exact,v,w,nb);
+    tic;  x = dmmtrf2_mexsolve(A,v,w,b); r.tdmmtrf2(k) = toc;
+    r.nrm_dmmtrf2(k) = norm(x-x_exact)/norm(x_exact);
+
+    tic;  x = dmmtrf_mexsolve(A,v,w,b); r.tdmmtrf(k) = toc;
+    r.nrm_dmmtrf(k) = norm(x-x_exact)/norm(x_exact);
+
+    tic; x = dmmtrff_mexsolve(A,v,w,b); r.tdmmtrff(k) = toc;
+    r.nrm_dmmtrff(k) = norm(x-x_exact)/norm(x_exact);
+
+    %LEFT TRIPLET ---------------------------------------------------------
+    tic; x = dmltf2_mexsolve(A,v,w,b); r.tdmltf2(k) = toc;
+    r.nrm_dmltf2(k) = norm(x-x_exact)/norm(x_exact);
+
+    tic; x = dmltrf2_mexsolve(A,v,w,b); r.tdmltrf2(k) = toc;
+    r.nrm_dmltrf2(k) = norm(x-x_exact)/norm(x_exact);
+
+    tic; x = dmltrf_mexsolve(A,v,w,b); r.tdmltrf(k) = toc;
+    r.nrm_dmltrf(k) = norm(x-x_exact)/norm(x_exact);
+
+    tic; x = dmltrff_mexsolve(A,v,w,b); r.tdmltrff(k) = toc;
+    r.nrm_dmltrff(k) = norm(x-x_exact)/norm(x_exact);
 end
 end
 
-% PROBLEM
+% PROBLEM -----------------------------------------------------------------
 function [A,b,w] = create_fem_problem(n,h,sigma)
-    % Create tridiagonal FEM matrix
-    A = full(gallery('tridiag',n,-1,2,-1));
-    A(1,1) = 1 + h*sigma;
-    A(end,end) = 1 + h*sigma;
-    % this w also works for the left triplet
-    w = zeros(n,1);w(1) = h*sigma;w(end) = h*sigma;
-    % Right-hand side
-    b = h*sin(pi*h*(1:n)');
-    b(1) = b(1)/2;
-    b(end) = b(end)/2;
-end
+A = full(gallery('tridiag',n,-1,2,-1));
+A(1,1) = 1 + h*sigma;
+A(end,end) = 1 + h*sigma;
 
+w = zeros(n,1);
+w(1) = h*sigma;
+w(end) = h*sigma;
+
+b = h*sin(pi*h*(1:n)');
+b(1) = b(1)/2;
+b(end) = b(end)/2;
+end
 
 function x = exact_solution(A,v,w,b)
-% High precision reference solution
-    n = length(A);
-    Avpa = vpa(A);
-    Avpa(1:n+1:end) = 0;
-    f = w - Avpa*v;
-    Avpa(1:n+1:end) = f ./ v;
-    x = double(Avpa\b);
-end
-
-function [time, rel_error, info] = run_gth(A,b,x_exact,v,w)
-    tic; [L,U] = gthlu(A,v,w); time = toc;x = U\(L\b);
-    rel_error = norm(x-x_exact)/norm(x_exact);info = 0;
-end
-
-function [time, rel_error, info] = run_lu(A,b,x_exact)
-    tic; [L,U] = lu(A); time = toc; x = U\(L\b);
-    rel_error = norm(x-x_exact)/norm(x_exact);info = 0;
-end
-
-
-%RIGHT TRIPLET-----------------------------------------------
-function [time, rel_error, info] = run_dmmtf2(A,b,x_exact,v,w)
-% RUN_DMMTF2
-    tic; [Af,info] = dmmtf2_mex(A,v,w); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmmtrf2(A,b,x_exact,v,w)
-% RUN_DMMTRF2
-    tic; [Af,info] = dmmtrf2_mex(A,v,w); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmmtrf(A,b,x_exact,v,w,nb)
-% RUN_DMMTRF
-    tic; [Af,info] = dmmtrf_mex(A,v,w,nb); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmmtrff(A,b,x_exact,v,w,nb)
-% RUN_DMMTRFF
-    tic; [Af,info] = dmmtrff_mex(A,v,w,nb); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-% LEFT TRIPLET-------------------------------------------------
-function [time, rel_error, info] = run_dmltf2(A,b,x_exact,v,w)
-% RUN_DMLTF2
-    tic; [Af,info] = dmltf2_mex(A,v,w); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmltrf2(A,b,x_exact,v,w)
-% RUN_DMLTRF2
-    tic; [Af,info] = dmltrf2_mex(A,v,w); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmltrf(A,b,x_exact,v,w,nb)
-% RUN_DMLTRF
-    tic; [Af,info] = dmltrf_mex(A,v,w,nb); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-function [time, rel_error, info] = run_dmltrff(A,b,x_exact,v,w,nb)
-% RUN_DMLTRFF  
-    tic; [Af,info] = dmltrff_mex(A,v,w,nb); time = toc;
-    x = solvelu(Af,b);rel_error = norm(x-x_exact)/norm(x_exact);
-end
-
-
-function x = solvelu(A,b)
-% Solve compact LU
-n = length(A);L = tril(A,-1) + eye(n);U = triu(A);y = L\b;x = U\y;
+n = length(A);
+Avpa = vpa(A);
+Avpa(1:n+1:end) = 0;
+f = w - Avpa*v;
+Avpa(1:n+1:end) = f ./ v;
+x = double(Avpa\b);
 end
 
 
@@ -181,16 +126,16 @@ figure('Position',[100 100 1300 500])
 subplot(1,2,1)
 loglog(c,results.conds*eps,'c','LineWidth', 2.5,'LineWidth',3,'DisplayName','cond(A)\epsilon')
 hold on
-loglog(c,results.norms_lu,'.r','LineWidth',1,'MarkerSize',11,'DisplayName','LU(dgetrf)')
-loglog(c,results.norms_gth,'sr','LineWidth',1,'MarkerSize',7,'DisplayName','GTH(right)')
-loglog(c,results.norms_dmmtf2,'ob','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtf2')
-loglog(c,results.norms_dmmtrf2,'db','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrf2')
-loglog(c,results.norms_dmmtrf,'+b','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrf')
-loglog(c,results.norms_dmmtrff,'*b','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrff')
-loglog(c,results.norms_dmltf2,'om','LineWidth',1,'MarkerSize',9,'DisplayName','dmltf2')
-loglog(c,results.norms_dmltrf2,'dm','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrf2')
-loglog(c,results.norms_dmltrf,'+m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrf')
-loglog(c,results.norms_dmltrff,'*m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrff')
+loglog(c,results.nrm_lu,'.r','LineWidth',1,'MarkerSize',11,'DisplayName','LU(dgetrf)')
+loglog(c,results.nrm_gth,'sr','LineWidth',1,'MarkerSize',7,'DisplayName','GTH(right)')
+loglog(c,results.nrm_dmmtf2,'ob','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtf2')
+loglog(c,results.nrm_dmmtrf2,'db','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrf2')
+loglog(c,results.nrm_dmmtrf,'+b','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrf')
+loglog(c,results.nrm_dmmtrff,'*b','LineWidth',1,'MarkerSize',9,'DisplayName','dmmtrff')
+loglog(c,results.nrm_dmltf2,'om','LineWidth',1,'MarkerSize',9,'DisplayName','dmltf2')
+loglog(c,results.nrm_dmltrf2,'dm','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrf2')
+loglog(c,results.nrm_dmltrf,'+m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrf')
+loglog(c,results.nrm_dmltrff,'*m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrff')
 xlabel('Sigma','FontSize', 12);
 ylabel('Relative error','FontSize', 12);
 legend('Location','best','FontSize', 12);
