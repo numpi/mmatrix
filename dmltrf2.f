@@ -26,10 +26,13 @@ C ------------------------------------------------------------
       DOUBLE PRECISION A(LDA,*), V(*), W(*)
 
       INTEGER N1, N2, M2, IINFO, I
-      DOUBLE PRECISION ONE, PIV
-      PARAMETER (ONE=1.0D0)
 
-      EXTERNAL DGEMM, DGEMV, DTRSM
+      DOUBLE PRECISION ONE, ZERO, PIV, TEMP, SFMIN
+      PARAMETER (ONE = 1.0D0, ZERO = 0.0D0)
+
+      DOUBLE PRECISION DDOT, DLAMCH
+      EXTERNAL DDOT, DLAMCH
+      EXTERNAL DSCAL, DGEMM, DGEMV, DTRSM
 
       INFO = 0
 C ------------------------------------------------------------
@@ -40,18 +43,24 @@ C ------------------------------------------------------------
 C Base case: N=1
 C ------------------------------------------------------------
       IF (N .EQ. 1) THEN
-         PIV = W(1)
-         DO I = 2, M
-            PIV = PIV - V(I) * A(I,1)
-         END DO
-         PIV = PIV / V(1)
+         IF (M .GT. 1) THEN
+            TEMP = DDOT(M-1, A(2,1), 1, V(2), 1)
+         ELSE
+            TEMP = ZERO
+         END IF
+         PIV = (W(1) - TEMP) / V(1)
          A(1,1) = PIV
          IF (M .GT. 1) THEN
-            DO I = 2, M
-               A(I,1) = A(I,1) / PIV
-            END DO
+            SFMIN = DLAMCH('S')
+            IF (ABS(PIV) .GE. SFMIN) THEN
+               CALL DSCAL(M-1, ONE/PIV, A(2,1), 1)
+            ELSE
+               DO I = 2, M
+                  A(I,1) = A(I,1) / PIV
+               END DO
+            END IF
          END IF
-         W(1) = W(1) / A(1,1)
+         W(1) = W(1) / PIV
          RETURN
       END IF
 C ------------------------------------------------------------
