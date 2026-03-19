@@ -77,19 +77,26 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mex-linux
-          path: .
+          path: mex-linux
   
       - name: Download Windows ZIP
         uses: actions/download-artifact@v4
         with:
           name: mex-windows
-          path: .
+          path: mex-windows
   
       - name: Zip artifacts
         shell: bash
         run: |
           (cd mex-linux && zip -r ../mex-linux.zip .)
           (cd mex-windows && zip -r ../mex-windows.zip .)
+
+      - name: Show downloaded files (debug)
+        shell: bash
+        run: |
+          ls -la
+          find mex-linux -maxdepth 3 -type f -print || true
+          find mex-windows -maxdepth 3 -type f -print || true
     
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
