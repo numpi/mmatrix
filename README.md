@@ -1,9 +1,10 @@
 ## GTH algorithm implemented in Fortran + Matlab mex-file interface.
 
-To build the Mex files (with a working Fortran setup and a modern Matlab):
+If you have a working Fortran compiler setup, you can compile the Mex files yourself with
 ```matlab
 >> build_mex
 ```
+Otherwise, you can download pre-compiled Linux and Windows versiosn from [here](https://github.com/numpi/mmatrix/releases/).
 
 To run automated tests and check everything is working:
 ```matlab
