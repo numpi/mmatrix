@@ -167,6 +167,48 @@ function testDgetrf(testCase)
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
+function testDgetf2_reference(testCase)
+    rng(0);
+    n = 4;
+    [A, ~, ~] = randtriplet(n);
+    [LU, ipiv] = dgetf2_reference_mex(A);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+
+    b = rand(n, 2);
+    x = dgetf2_reference_mexsolve(A, b);
+    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+end
+
+function testDgetrf2_reference(testCase)
+    rng(0);
+    n = 4;
+    [A, ~, ~] = randtriplet(n);
+    [LU, ipiv] = dgetrf2_reference_mex(A);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+
+    b = rand(n, 2);
+    x = dgetrf2_reference_mexsolve(A, b);
+    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+end
+
+function testDgetrf_reference(testCase)
+    rng(0);
+    n = 4;
+    [A, ~, ~] = randtriplet(n);
+    [LU, ipiv] = dgetrf_reference_mex(A);
+    L = eye(n) + tril(LU, -1);
+    U = triu(LU);
+    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+
+    b = rand(n, 2);
+    x = dgetrf_reference_mexsolve(A, b);
+    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+end
+
 function testDmltf2(testCase)
     rng(0);
     n = 4;

@@ -110,7 +110,7 @@
 *
 *  =====================================================================
 
-      RECURSIVE SUBROUTINE dgetrf2( M, N, A, LDA, IPIV, INFO )
+      RECURSIVE SUBROUTINE dgetrf2_reference( M, N, A, LDA, IPIV, INFO )
 *
 *  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -224,7 +224,7 @@
 *        Factor [ --- ]
 *               [ A21 ]
 *
-         CALL dgetrf2( m, n1, a, lda, ipiv, iinfo )
+         CALL dgetrf2_reference( m, n1, a, lda, ipiv, iinfo )
 
          IF ( info.EQ.0 .AND. iinfo.GT.0 )
      $      info = iinfo
@@ -247,8 +247,8 @@
 *
 *        Factor A22
 *
-         CALL dgetrf2( m-n1, n2, a( n1+1, n1+1 ), lda, ipiv( n1+1 ),
-     $                 iinfo )
+         CALL dgetrf2_reference( m-n1, n2, a( n1+1, n1+1 ), lda, 
+     $                 ipiv( n1+1 ), iinfo )
 *
 *        Adjust INFO and the pivot indices
 *
