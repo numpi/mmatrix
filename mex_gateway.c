@@ -3,18 +3,21 @@
 
    This code contains a Mex wrapper around a Fortran subroutine
    specified in the macro FUNNAME
+
+   If SOLVE, the wrapper also solves a linear system.
+   If LEFT_SOLVE, this linear system is X A = B instead of A X = B.
    
    Inputs:
 
    Mandatory:
    1 (A)
    +2 (v,w) if HAS_TRIPLET
-   +1 (b) if SOLVE_RHS
+   +1 (b) if SOLVE
    Optional:
    +1 (NB) if HAS_NB
 
    Outputs:
-   1 (x) if SOLVE_RHS
+   1 (x) if SOLVE
    +1 (A)
    +1 (ipiv) if HAS_IPIV
    +1 (info)
@@ -87,7 +90,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     min_inputs += 2;
     b_position += 2;
 #endif
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     min_inputs += 1;
 #endif
 #ifdef HAS_NB
@@ -95,7 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif
 
     int max_outputs = 2; /*A and info*/ 
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     max_outputs += 1;
 #endif
 #ifdef HAS_IPIV
@@ -121,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
         mexErrMsgIdAndTxt(FUNNAME_STR ":vw",
                           "v and w must be double vectors.");
 #endif
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     if (!mxIsDouble(prhs[b_position]))
         mexErrMsgIdAndTxt(FUNNAME_STR ":b",
                           "b must be a double vector or matrix.");
@@ -130,7 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #ifdef HAS_TRIPLET        
         || mxIsComplex(prhs[1]) || mxIsComplex(prhs[2])
 #endif
-#ifdef SOLVE_RHS
+#ifdef SOLVE
         || mxIsComplex(prhs[b_position])
 #endif        
        )
@@ -165,14 +168,23 @@ void mexFunction(int nlhs, mxArray *plhs[],
                           "w has the wrong length.");
 #endif  /*HAS_TRIPLET*/
 
-#ifdef SOLVE_RHS
+#ifdef SOLVE
+#ifdef LEFT_SOLVE
+    mwSize sizerhs = mxGetM(prhs[b_position]);
+    if (mxGetN(prhs[b_position]) != m)
+        mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
+                          "wrong size(b, 2).");
+    mwSignedIndex SIZERHS   = (mwSignedIndex)sizerhs;
+    mwSignedIndex LDB = SIZERHS;
+#else /*not LEFT_SOLVE*/
     mwSize sizerhs = mxGetN(prhs[b_position]);
     if (mxGetM(prhs[b_position]) != n)
         mexErrMsgIdAndTxt(FUNNAME_STR ":dimension",
                           "wrong size(b, 1).");
     mwSignedIndex SIZERHS   = (mwSignedIndex)sizerhs;
     mwSignedIndex LDB = N;
-#endif
+#endif /*LEFT_SOLVE*/
+#endif /*SOLVE*/
 
     mwSignedIndex worksize = (mwSignedIndex)minmn;
     
@@ -208,7 +220,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mxArray *wp = mxDuplicateArray(prhs[2]);
     double *w = mxGetPr(wp);    
 #endif
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     /* --------------------------------------------------
        Duplicate b (we will overwrites b with x)
     -------------------------------------------------- */
@@ -246,11 +258,21 @@ void mexFunction(int nlhs, mxArray *plhs[],
 #endif 
                       &info);
 
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     double oneD0 = 1.0;
     /* --------------------------------------------------
        Use factorization to solve the linear system
     -------------------------------------------------- */
+#ifdef LEFT_SOLVE
+#ifdef HAS_IPIV
+    #error "LEFT_SOLVE with HAS_IPIV is not implemented"
+#endif /*HAS_IPIV*/
+    F77_NAME(dtrsm)("R", "U", "N", "N",
+                    &SIZERHS, &M, &oneD0, A, &LDA, b, &LDB);
+    
+    F77_NAME(dtrsm)("R", "L", "N", "U",
+                    &SIZERHS, &M, &oneD0, A, &LDA, b, &LDB);
+#else /*not LEFT_SOLVE*/
 #ifdef HAS_IPIV
     F77_NAME(dlaswp)(&SIZERHS, b, &LDB, &one, &minmn, ipiv, &one);
 #endif /*HAS_IPIV*/
@@ -259,8 +281,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     F77_NAME(dtrsm)("L", "U", "N", "N",
                     &N, &SIZERHS, &oneD0, A, &LDA, b, &LDB);
-
-#endif /*SOLVE_RHS*/
+#endif /*LEFT_SOLVE*/
+#endif /*SOLVE*/
 
     /* --------------------------------------------------
        Cleanup used arrays, apart from the ones
@@ -274,7 +296,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     int filled_outputs = 0;
  
-#ifdef SOLVE_RHS
+#ifdef SOLVE
     if (nlhs > filled_outputs) {
         plhs[filled_outputs] = bp;
         filled_outputs += 1;

@@ -25,7 +25,7 @@ function testGthLU(testCase)
     [L, U, ww] = gthlu(A0, v, w, 'left');
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
     testCase.verifyEqual(diag(L), ones(n,1));
-    testCase.verifyEqual(ww, w / U);    
+    testCase.verifyEqual(ww, w / U);
 end
 
 function testDmmtf2(testCase)
@@ -49,11 +49,13 @@ function testDmmtf2(testCase)
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     testCase.verifyEqual(info, 0);
     testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
-
+    % test _solve
     b = rand(n, 2);
     x = mmex.dmmtf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-
+    % test _lsolve
+    x = mmex.dmmtf2_lsolve(A0, v, w, b');
+    testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
     % test all outputs from _solve
     [x, LU, info, outw] = mmex.dmmtf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);

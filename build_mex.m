@@ -49,9 +49,15 @@ function build_mex()
         dep_objects = cellfun(@(x) "+mmex/"+x+"."+objext, dependencies, UniformOutput=false);
         additional_parameters = cellfun(@(x) "-D"+x, switches, UniformOutput=false);
         mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", funname, "-DFUNNAME="+funname, additional_parameters{:});
-        % build also the _solve version
+        % build also the _solve version...
         solvername = funname + "_solve";
         fprintf('Linking %s...\n', solvername);
-        mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE_RHS");
+        mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE");
+        % ...and the left_solve, unless HAS_IPIV
+        if not(ismember("HAS_IPIV", cell2mat(switches)))
+        solvername = funname + "_lsolve";
+        fprintf('Linking %s...\n', solvername);
+        mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE", "-DLEFT_SOLVE");
+        end
     end
 end
