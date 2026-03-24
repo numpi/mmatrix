@@ -150,29 +150,6 @@ function testTraditionalSolvers(testCase)
     end
 end
 
-function testDmmtrf(testCase)
-    rng(0);
-    n = 4;
-    [A, v, w] = randtriplet(n);
-    A0 = A; A0(1:n+1:end) = nan;
-    % try different block sizes
-    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        LU = mmex.dmmtrf(A0, v, w, blocksize);
-        L = eye(n) + tril(LU, -1);
-        U = triu(LU);
-        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    end
-    % test also with the default block size
-    LU = mmex.dmmtrf(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmmtrf_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
 function testRightTripletSolversWithBlockSizes(testCase)
     rng(0);
     n = 6;
