@@ -4,7 +4,7 @@ If you have a working Fortran compiler setup, you can compile the Mex files your
 ```matlab
 >> build_mex
 ```
-Otherwise, you can download pre-compiled Linux and Windows versiosn from [here](https://github.com/numpi/mmatrix/releases/).
+Otherwise, you can download pre-compiled Linux and Windows versions from [here](https://github.com/numpi/mmatrix/releases/). Unzip the files in the `+mmex` folder to use them.
 
 To run automated tests and check everything is working:
 ```matlab
