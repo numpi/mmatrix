@@ -28,57 +28,126 @@ function testGthLU(testCase)
     testCase.verifyEqual(ww, w / U);
 end
 
-function testDmmtf2(testCase)
+function testRightTripletSolvers(testCase)
     rng(0);
     n = 4;
     [A, v, w] = randtriplet(n);
     A0 = A; A0(1:n+1:end) = nan;
-    LU = mmex.dmmtf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    % test with more outputs
-    [LU, info] = mmex.dmmtf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);    
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    [LU, info, outw] = mmex.dmmtf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
-    % test _solve
-    b = rand(n, 2);
-    x = mmex.dmmtf2_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-    % test _lsolve
-    x = mmex.dmmtf2_lsolve(A0, v, w, b');
-    testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
-    % test all outputs from _solve
-    [x, LU, info, outw] = mmex.dmmtf2_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
+    solvers = { "dmmtf2", "dmmtrf2", "dmmtrf", "dmmtrff" };
+    for k = 1:length(solvers)
+        solver = str2func("mmex."+solvers{k});
+        LU = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        % test with more outputs
+        [LU, info] = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);    
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        [LU, info, outw] = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
+        % test _solve        
+        solver = str2func("mmex."+solvers{k} + "_solve");
+        b = rand(n, 2);
+        x = solver(A0, v, w, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        % test all outputs from _solve
+        [x, LU, info, outw] = solver(A0, v, w, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
+        % test _lsolve
+        solver = str2func("mmex."+solvers{k} + "_lsolve");
+        b = rand(n, 2);
+        x = solver(A0, v, w, b');
+        testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
+    end
+end    
+
+function testLeftTripletSolvers(testCase)
+    rng(0);
+    n = 4;
+    [A, v, w] = randtriplet(n, left=true);
+    A0 = A; A0(1:n+1:end) = nan;
+    solvers = {"dmltf2", "dmltrf2", "dmltrf", "dmltrff"};
+    for k = 1:length(solvers)
+        solver = str2func("mmex."+solvers{k});
+        LU = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        % test with more outputs
+        [LU, info] = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);    
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        [LU, info, outw] = solver(A0, v, w);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+        % test _solve        
+        solver = str2func("mmex."+solvers{k}+"_solve");
+        b = rand(n, 2);
+        x = solver(A0, v, w, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        % test all outputs from _solve
+        [x, LU, info, outw] = solver(A0, v, w, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+        % test _lsolve
+        solver = str2func("mmex."+solvers{k} + "_lsolve");
+        b = rand(n, 2);
+        x = solver(A0, v, w, b');
+        testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
+    end
 end
 
-function testDmmtrf2(testCase)
+function testTraditionalSolvers(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
-    A0 = A; A0(1:n+1:end) = nan;
-    LU = mmex.dmmtrf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmmtrf2_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+    [A, ~, ~] = randtriplet(n);
+    solvers = {"dgetf2", "dgetrf2", "dgetrf", "dgetf2_reference", "dgetrf2_reference", "dgetrf_reference"};
+    for k = 1:length(solvers)
+        solver = str2func("mmex."+solvers{k});
+        [LU, ipiv] = solver(A);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+        % test _solve        
+        solver = str2func("mmex."+solvers{k}+"_solve");
+        b = rand(n, 2);
+        x = solver(A, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        % test all outputs from _solve
+        [x, LU, ipiv, info] = solver(A, b);
+        testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+        L = eye(n) + tril(LU, -1);
+        U = triu(LU);
+        testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
+        testCase.verifyEqual(info, 0);
+        % Commented because _lsolve is not implemented for these
+        % test _lsolve
+        % solver = str2func("mmex."+solvers{k} + "_lsolve");
+        % b = rand(n, 2);
+        % x = solver(A, b');
+        % testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
+    end
 end
 
 function testDmmtrf(testCase)
@@ -104,204 +173,50 @@ function testDmmtrf(testCase)
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
-function testDmmtrff(testCase)
+function testRightTripletSolversWithBlockSizes(testCase)
     rng(0);
     n = 4;
     [A, v, w] = randtriplet(n);
     A0 = A; A0(1:n+1:end) = nan;
-    % try different block sizes
-    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        LU = mmex.dmmtrff(A0, v, w, blocksize);
-        L = eye(n) + tril(LU, -1);
-        U = triu(LU);
-        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+    b = rand(n, 3);
+    solvers = {"dmmtrf", "dmmtrff" };
+    for k = 1:length(solvers)        
+        for blocksize = [1 2 n/2 n-1 n n+1 2*n]
+            solver = str2func("mmex."+solvers{k});
+            LU = solver(A0, v, w, blocksize);
+            L = eye(n) + tril(LU, -1);
+            U = triu(LU);
+            testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+            solver = str2func("mmex."+solvers{k} + "_solve");            
+            x = solver(A0, v, w, b, blocksize);
+            testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+            solver = str2func("mmex."+solvers{k} + "_lsolve");
+            x = solver(A0, v, w, b', blocksize);
+            testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
+        end    
     end
-    % test also with the default block size
-    LU = mmex.dmmtrff(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmmtrff_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
-function testDgetf2(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetf2(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetf2_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDgetrf2(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetrf2(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetrf2_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDgetrf(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetrf(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetrf_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDgetf2_reference(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetf2_reference(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetf2_reference_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDgetrf2_reference(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetrf2_reference(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetrf2_reference_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDgetrf_reference(testCase)
-    rng(0);
-    n = 4;
-    [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = mmex.dgetrf_reference(A);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dgetrf_reference_solve(A, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDmltf2(testCase)
+function testLeftTripletSolversWithBlockSizes(testCase)
     rng(0);
     n = 4;
     [A, v, w] = randtriplet(n, left=true);
     A0 = A; A0(1:n+1:end) = nan;
-    LU = mmex.dmltf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    % test with more outputs
-    [LU, info] = mmex.dmltf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);    
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    [LU, info, outw] = mmex.dmltf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmltf2_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDmltrf2(testCase)
-    rng(0);
-    n = 4;
-    [A, v, w] = randtriplet(n, left=true);
-    A0 = A; A0(1:n+1:end) = nan;
-    [LU, info, outw] = mmex.dmltrf2(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-    testCase.verifyEqual(info, 0);
-    testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmltrf2_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
-end
-
-function testDmltrf(testCase)
-    rng(0);
-    n = 4;
-    [A, v, w] = randtriplet(n, left=true);
-    A0 = A; A0(1:n+1:end) = nan;
-    % try different block sizes
-    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        [LU, info, outw] = mmex.dmltrf(A0, v, w, blocksize);
-        L = eye(n) + tril(LU, -1);
-        U = triu(LU);
-        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-        testCase.verifyEqual(info, 0);
-        % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
+    b = rand(n, 3);
+    solvers = {"dmltrf", "dmltrff"};
+    for k = 1:length(solvers)        
+        for blocksize = [1 2 n/2 n-1 n n+1 2*n]
+            solver = str2func("mmex."+solvers{k});
+            LU = solver(A0, v, w, blocksize);
+            L = eye(n) + tril(LU, -1);
+            U = triu(LU);
+            testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+            solver = str2func("mmex."+solvers{k} + "_solve");            
+            x = solver(A0, v, w, b, blocksize);
+            testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
+            solver = str2func("mmex."+solvers{k} + "_lsolve");
+            x = solver(A0, v, w, b', blocksize);
+            testCase.verifyEqual(x, b'/A, 'RelTol', 1e-9);
+        end    
     end
-    % test also with the default block size
-    LU = mmex.dmltrf(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmltrf_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
-
-function testDmltrff(testCase)
-    rng(0);
-    n = 4;
-    [A, v, w] = randtriplet(n, left=true);
-    A0 = A; A0(1:n+1:end) = nan;
-    % try different block sizes
-    for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        [LU, info, outw] = mmex.dmltrff(A0, v, w, blocksize);
-        L = eye(n) + tril(LU, -1);
-        U = triu(LU);
-        testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-        testCase.verifyEqual(info, 0);
-        % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
-    end
-    % test also with the default block size
-    LU = mmex.dmltrff(A0, v, w);
-    L = eye(n) + tril(LU, -1);
-    U = triu(LU);
-    testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-
-    b = rand(n, 2);
-    x = mmex.dmltrff_solve(A0, v, w, b);
-    testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);    
-end
-
