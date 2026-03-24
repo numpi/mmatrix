@@ -160,10 +160,12 @@ function testRightTripletSolversWithBlockSizes(testCase)
     for k = 1:length(solvers)        
         for blocksize = [1 2 n/2 n-1 n n+1 2*n]
             solver = str2func("mmex."+solvers{k});
-            LU = solver(A0, v, w, blocksize);
+            [LU, info, outw] = solver(A0, v, w, blocksize);
             L = eye(n) + tril(LU, -1);
             U = triu(LU);
-            testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
+            testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);            
+            testCase.verifyEqual(info, 0);
+            testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
             solver = str2func("mmex."+solvers{k} + "_solve");            
             x = solver(A0, v, w, b, blocksize);
             testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
@@ -183,12 +185,15 @@ function testLeftTripletSolversWithBlockSizes(testCase)
     solvers = {"dmltrf", "dmltrff"};
     for k = 1:length(solvers)        
         for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-            solver = str2func("mmex."+solvers{k});
-            LU = solver(A0, v, w, blocksize);
+            solver = str2func("mmex."+solvers{k});            
+            [LU, info, outw] = solver(A0, v, w, blocksize);
             L = eye(n) + tril(LU, -1);
             U = triu(LU);
             testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
-            solver = str2func("mmex."+solvers{k} + "_solve");            
+            testCase.verifyEqual(info, 0);
+            % we do not the additional computations to enforce this!
+            % testCase.verifyEqual(w/U, outw, 'RelTol', 1e-9);
+            solver = str2func("mmex."+solvers{k} + "_solve");
             x = solver(A0, v, w, b, blocksize);
             testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
             solver = str2func("mmex."+solvers{k} + "_lsolve");
