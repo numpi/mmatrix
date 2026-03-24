@@ -175,7 +175,7 @@ end
 
 function testRightTripletSolversWithBlockSizes(testCase)
     rng(0);
-    n = 4;
+    n = 6;
     [A, v, w] = randtriplet(n);
     A0 = A; A0(1:n+1:end) = nan;
     b = rand(n, 3);
@@ -199,7 +199,7 @@ end
 
 function testLeftTripletSolversWithBlockSizes(testCase)
     rng(0);
-    n = 4;
+    n = 6;
     [A, v, w] = randtriplet(n, left=true);
     A0 = A; A0(1:n+1:end) = nan;
     b = rand(n, 3);

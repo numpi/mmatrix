@@ -33,7 +33,7 @@ C     Test input parameters
       K = MIN( M, N )
       IF ( K .EQ. 0 ) RETURN
       
-      IF ( NB .EQ. 1 .OR. NB .GE. K ) THEN
+      IF ( NB .GE. K ) THEN
          CALL DMMTRF2( M, N, A, LDA, V, W, WORK, INFO )
          RETURN
       END IF
