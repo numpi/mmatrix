@@ -11,7 +11,7 @@ classdef mmatrix
         off (:, :) {mustBeNonpositive} % off-diagonal of A
         u (:, 1) {mustBePositive} % positive vector	such that Au = v
         v (:, 1) {mustBeNonnegative} % nonnegative vector such that Au = v
-        direction (:, :) % right = 0; left = 1
+        left (1,1) logical % true = left, false = right
     end
     properties (Dependent)
         n % size of the triplet mmatrix
@@ -39,16 +39,41 @@ classdef mmatrix
             % Constructor for triplet mmatrix
             % off: off-diagonal elements of the matrix A in a matrix
             % u, v: positive and nonnegative vectors such that A*u = v
-
+            arguments
+                off (:,:)
+                u (:,1) {mustBePositive}
+                v (:,1) {mustBeNonnegative}
+                opts.left (1,1) logical = false
+            end
             [n, m] = size(off);
 
             if ne(n, m)
                 error('offdiag(A) must be a square matrix');
             end
 
-            if ne(size(u,1), n) || ne(size(v,1), n)
-                error('u and v should have the same size as offdiag(A)');
+            if nargin < 4
+                opts.left = false;
             end
+
+            A.left = opts.left;
+
+
+            % if ne(size(u,1), n) || ne(size(v,1), n)
+            %     error('u and v should have the same size as offdiag(A)');
+            % end
+
+            if A.left
+                % left triplet
+                if ne(size(u,2), n) || ne(size(v,2), n)
+                    error('u and v should have the same size as offdiag(A)');
+                end
+            else
+                % right triplet
+                if ne(size(u,1), n) || ne(size(v,1), n)
+                    error('u and v should have the same size as offdiag(A)');
+                end
+            end
+
 
             if isequal(diag(off),zeros(n,1))
             else
@@ -56,10 +81,7 @@ classdef mmatrix
                 off(1:n+1:n^2) = 0;
             end
 
-            if nargin < 4
-                opts.direction = 0;
-            end
-            A.direction = opts.direction;
+
 
             A.off = off;
             A.u = u;
@@ -104,12 +126,12 @@ classdef mmatrix
             % A: triplet mmatrix
             % L, U: factors of the LU factorization
             n=A.n;
-            if (A.direction)
+            if A.left
                 U = dmltrff_mex(A.off, A.u, A.v);
             else
                 U = dmmtrff_mex(A.off, A.u, A.v);
             end
-            L = tril(U, -1); L(1:n+1:end) = 1;
+            L = tril(U,-1) + eye(n);
             U = triu(U);
         end
 
@@ -152,7 +174,7 @@ classdef mmatrix
             if sum(sum(B<0)) > 0
                 warning('B is no nonnegative, result may not be componentwise accurate');
             end
-            if (A.direction)
+            if A.left
                 X = dmltrff_mexsolve(A.off, A.u, A.v, B);
             else
                 X = dmmtrff_mexsolve(A.off, A.u, A.v, B);
@@ -178,6 +200,7 @@ classdef mmatrix
             % A: triplet mmatrix
             % X: inv(A)
             X = A\eye(A.n);
+            % X = dmmtri_mex(A.off, A.u, A.v);
         end
 
         %		function [A1, A2] = minor(A, p, q)
