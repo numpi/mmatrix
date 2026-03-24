@@ -100,16 +100,6 @@ results = {
     'DGETRF_time': [], 'DGETRF_error': []
 }
 
-# ------------------------------------------------------------
-# Main loop
-# ------------------------------------------------------------
-# Compile Fortran modules
-if not compile_fortran_modules():
-    print("Failed to compile Fortran modules. Exiting.")
-    sys.exit(1)
-
-print("\nFortran modules compiled successfully. Starting computations...\n")
-
 for N in Ns: 
     try:
         # Create mesh

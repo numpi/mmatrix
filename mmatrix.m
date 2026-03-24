@@ -1,10 +1,144 @@
 classdef mmatrix
-    % mmatrix - a MATLAB class for triplet M-matrices
-    %  an n x n M-matrix A is represented through (off, u, v)
-    %  off is the matrix of the off-diagonal of A that is
-    %  the nonpositive n x n matrix with zero diagonal and whose
-    %  off-diagonal coincide with the off-diagonal of A
-    %  u is a positive vector, v is a nonegative vector such that A*u = v
+    % matrix solver functions
+    
+    methods(Static)
+        
+        %------------------------------------------------------------------
+        function [A, b, w] = create_fem_problem(n, h, sigma)
+            % Create FEM problem matrix and vectors
+            A = full(gallery('tridiag', n, -1, 2, -1));
+            A(1,1) = 1 + h*sigma;
+            A(end,end) = 1 + h*sigma;
+            
+            w = zeros(n,1);
+            w(1) = h*sigma;
+            w(end) = h*sigma;
+            
+            b = h * sin(pi * h * (1:n)');
+            b(1) = b(1)/2;
+            b(end) = b(end)/2;
+        end
+        
+        %------------------------------------------------------------------
+        function x_exact = exact_solution(A, v, w, b)
+            % Compute exact solution
+            n = length(A);
+            Avpa = vpa(A);
+            Avpa(1:n+1:end) = 0;
+            f = w - Avpa*v;
+            Avpa(1:n+1:end) = f ./ v;
+            x_exact = double(Avpa \ b);
+        end
+         function x_exact = exact_solution_lu(A, b)
+            x_exact = double(vpa(A) \ b);
+         end
+        %------------------------------------------------------------------
+        function [time, rel_error] = run_gthlu(A, b, x_exact, v, w)
+            % Run GTH method
+                tic;
+                [L, U] = gthlu(A, v, w);
+                time = toc;
+                x = U \ (L \ b);
+                rel_error = norm(x - x_exact) / norm(x_exact);
+        end
+        
+        %------------------------------------------------------------------
+        function [time, rel_error] = run_standard_lu(A, b, x_exact)
+            % Run standard LU method
+                tic;
+                [L, U] = lu(A);
+                time = toc;
+                x = U \ (L \ b);
+                rel_error = norm(x - x_exact) / norm(x_exact);
+        end
+        
+        %------------------------------------------------------------------
+        function [time, rel_error] = run_dmmtf2(A, b, x_exact, v, w)
+            % Run DMMTF2 method
+                tic;
+                [Af, info] = mmex.dmmtf2(A, v, w);
+                time = toc;
+                    x = mmatrix.solvelu(Af, b);
+                    rel_error = norm(x - x_exact) / norm(x_exact);
+        end
+        
+        %------------------------------------------------------------------
+        function [time, rel_error] = run_dmmtrf(A, b, x_exact, v, w, nb)
+            % Run DMMTRF method
+                tic;
+                [Af, info] = mmex.dmmtrf(A, v, w, nb);
+                time = toc;
+                    x = mmatrix.solvelu(Af, b);
+                    rel_error = norm(x - x_exact) / norm(x_exact);
+        end
+        
+        %------------------------------------------------------------------
+        function [time, rel_error] = run_dmmtrff(A, b, x_exact, v, w, nb)
+            % Run DMMTRFF method
+                tic;
+                [Af, info] = mmex.dmmtrff(A, v, w, nb);
+                time = toc;
+                    x = mmatrix.solvelu(Af, b);
+                    rel_error = norm(x - x_exact) / norm(x_exact);
+        end
+        
+        %------------------------------------------------------------------
+        function x = solvelu(A, b)
+            % Solve using LU factors
+            n = length(A);
+            L = tril(A,-1) + eye(n);
+            U = triu(A);
+            y = L \ b;
+            x = U \ y;
+        end
+        
+        %------------------------------------------------------------------
+        function results = run_dimension_experiments(params, method_flags)
+            % Run experiments for varying dimensions
+            sigma = params.sigma;
+            ns = params.ns;
+            nb = params.nb;
+            
+            nt = length(ns);
+            results.ns = ns;
+            z = zeros(1, nt);
+            
+            % Initialize result arrays
+            results.conds = z;
+            if method_flags.gth
+                results.norms_gth = z;
+                results.tgth = z;
+            end
+            if method_flags.lu
+                results.norms_lu = z;
+                results.tlu = z;
+            end
+            if method_flags.dmmtf2
+                results.norms_dmmtf2 = z;
+                results.tdmmtf2 = z;
+            end
+            if method_flags.dmmtrf
+                results.norms_dmmtrf = z;
+                results.tdmmtrf = z;
+            end
+            if method_flags.dmmtrff
+                results.norms_dmmtrff = z;
+                results.tdmmtrff = z;
+            end
+            
+            for k = 1:nt
+                n = ns(k);
+                h = 1/(n+1);
+                v = ones(n,1);
+                
+                % Create problem
+                [A, b, w] = mmatrix.create_fem_problem(n, h, sigma);
+                
+                results.conds(k) = cond(A);
+                
+                % Exact solution
+                x_exact = mmatrix.exact_solution(A, v, w, b);
+                x_exact_lu = mmatrix.exact_solution_lu(A, b);
 
     % Properties of the class
     properties (SetAccess = public)

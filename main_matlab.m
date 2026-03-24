@@ -67,29 +67,29 @@ for k = 1:nt
     r.nrm_lu(k) = norm(x-x_exact)/norm(x_exact);
 
     % RIGHT TRIPLET--------------------------------------------------------
-    tic; x = dmmtf2_mexsolve(A,v,w,b); r.tdmmtf2(k) = toc;
+    tic; x = mmex.dmmtf2_solve(A,v,w,b); r.tdmmtf2(k) = toc;
     r.nrm_dmmtf2(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic;  x = dmmtrf2_mexsolve(A,v,w,b); r.tdmmtrf2(k) = toc;
+    tic;  x = mmex.dmmtrf2_solve(A,v,w,b); r.tdmmtrf2(k) = toc;
     r.nrm_dmmtrf2(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic;  x = dmmtrf_mexsolve(A,v,w,b); r.tdmmtrf(k) = toc;
+    tic;  x = mmex.dmmtrf_solve(A,v,w,b); r.tdmmtrf(k) = toc;
     r.nrm_dmmtrf(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic; x = dmmtrff_mexsolve(A,v,w,b); r.tdmmtrff(k) = toc;
+    tic; x = mmex.dmmtrff_solve(A,v,w,b); r.tdmmtrff(k) = toc;
     r.nrm_dmmtrff(k) = norm(x-x_exact)/norm(x_exact);
 
     %LEFT TRIPLET ---------------------------------------------------------
-    tic; x = dmltf2_mexsolve(A,v,w,b); r.tdmltf2(k) = toc;
+    tic; x = mmex.dmltf2_solve(A,v,w,b); r.tdmltf2(k) = toc;
     r.nrm_dmltf2(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic; x = dmltrf2_mexsolve(A,v,w,b); r.tdmltrf2(k) = toc;
+    tic; x = mmex.dmltrf2_solve(A,v,w,b); r.tdmltrf2(k) = toc;
     r.nrm_dmltrf2(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic; x = dmltrf_mexsolve(A,v,w,b); r.tdmltrf(k) = toc;
+    tic; x = mmex.dmltrf_solve(A,v,w,b); r.tdmltrf(k) = toc;
     r.nrm_dmltrf(k) = norm(x-x_exact)/norm(x_exact);
 
-    tic; x = dmltrff_mexsolve(A,v,w,b); r.tdmltrff(k) = toc;
+    tic; x = mmex.dmltrff_solve(A,v,w,b); r.tdmltrff(k) = toc;
     r.nrm_dmltrff(k) = norm(x-x_exact)/norm(x_exact);
 end
 end

@@ -49,10 +49,6 @@ def rel_error(x, x_exact):
 # ------------------------------------------------------------
 # Main test
 def run_test(n_list, num_repeats):
-    import dmmtf2
-    import dgetf2
-    import dmmtrf
-#    import dmmtrf2
 
     print(f"{'n':>6} "
           f"{'dmmtf2 time':>12} {'dmmtf2 err':>12} "

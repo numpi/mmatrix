@@ -90,17 +90,17 @@ x = U \ (L \ b);rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
 function [time, rel_error, info] = run_dmmtf2(A, b, x_exact, v, w)
-tic;[Af, info] = dmmtf2_mex(A, v, w);time = toc;
+tic;[Af, info] = mmex.dmmtf2(A, v, w);time = toc;
 x = solvelu(Af, b);rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
 function [time, rel_error, info] = run_dmmtrf(A, b, x_exact, v, w, nb)
-tic;[Af, info] = dmmtrf_mex(A, v, w, nb);time = toc;
+tic;[Af, info] = mmex.dmmtrf(A, v, w, nb);time = toc;
 x = solvelu(Af, b);rel_error = norm(x - x_exact) / norm(x_exact);
 end
 
 function [time, rel_error, info] = run_dmmtrff(A, b, x_exact, v, w, nb)
-tic;[Af, info] = dmmtrff_mex(A, v, w, nb);time = toc;
+tic;[Af, info] = mmex.dmmtrff(A, v, w, nb);time = toc;
 x = solvelu(Af, b);rel_error = norm(x - x_exact) / norm(x_exact);
 end
 

@@ -3,7 +3,7 @@ tests = functiontests(localfunctions);
 end
 
 function setupOnce(testCase)
-% Add ../src to path for the duration of this test file
+% Add .. to path for the duration of this test file
 import matlab.unittest.fixtures.PathFixture
 testCase.applyFixture(PathFixture('..'));
 end
@@ -33,17 +33,17 @@ function testDmmtf2(testCase)
     n = 4;
     [A, v, w] = randtriplet(n);
     A0 = A; A0(1:n+1:end) = nan;
-    LU = dmmtf2_mex(A0, v, w);
+    LU = mmex.dmmtf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     % test with more outputs
-    [LU, info] = dmmtf2_mex(A0, v, w);
+    [LU, info] = mmex.dmmtf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);    
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     testCase.verifyEqual(info, 0);
-    [LU, info, outw] = dmmtf2_mex(A0, v, w);
+    [LU, info, outw] = mmex.dmmtf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
@@ -51,11 +51,11 @@ function testDmmtf2(testCase)
     testCase.verifyEqual(L\w, outw, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmmtf2_mexsolve(A0, v, w, b);
+    x = mmex.dmmtf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 
-    % test all outputs from _mexsolve
-    [x, LU, info, outw] = dmmtf2_mexsolve(A0, v, w, b);
+    % test all outputs from _solve
+    [x, LU, info, outw] = mmex.dmmtf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
@@ -69,13 +69,13 @@ function testDmmtrf2(testCase)
     n = 4;
     [A, v, w] = randtriplet(n);
     A0 = A; A0(1:n+1:end) = nan;
-    LU = dmmtrf2_mex(A0, v, w);
+    LU = mmex.dmmtrf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmmtrf2_mexsolve(A0, v, w, b);
+    x = mmex.dmmtrf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -86,19 +86,19 @@ function testDmmtrf(testCase)
     A0 = A; A0(1:n+1:end) = nan;
     % try different block sizes
     for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        LU = dmmtrf_mex(A0, v, w, blocksize);
+        LU = mmex.dmmtrf(A0, v, w, blocksize);
         L = eye(n) + tril(LU, -1);
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     end
     % test also with the default block size
-    LU = dmmtrf_mex(A0, v, w);
+    LU = mmex.dmmtrf(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmmtrf_mexsolve(A0, v, w, b);
+    x = mmex.dmmtrf_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -109,19 +109,19 @@ function testDmmtrff(testCase)
     A0 = A; A0(1:n+1:end) = nan;
     % try different block sizes
     for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        LU = dmmtrff_mex(A0, v, w, blocksize);
+        LU = mmex.dmmtrff(A0, v, w, blocksize);
         L = eye(n) + tril(LU, -1);
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     end
     % test also with the default block size
-    LU = dmmtrff_mex(A0, v, w);
+    LU = mmex.dmmtrff(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmmtrff_mexsolve(A0, v, w, b);
+    x = mmex.dmmtrff_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -129,13 +129,13 @@ function testDgetf2(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetf2_mex(A);
+    [LU, ipiv] = mmex.dgetf2(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetf2_mexsolve(A, b);
+    x = mmex.dgetf2_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -143,13 +143,13 @@ function testDgetrf2(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetrf2_mex(A);
+    [LU, ipiv] = mmex.dgetrf2(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetrf2_mexsolve(A, b);
+    x = mmex.dgetrf2_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -157,13 +157,13 @@ function testDgetrf(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetrf_mex(A);
+    [LU, ipiv] = mmex.dgetrf(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetrf_mexsolve(A, b);
+    x = mmex.dgetrf_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -171,13 +171,13 @@ function testDgetf2_reference(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetf2_reference_mex(A);
+    [LU, ipiv] = mmex.dgetf2_reference(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetf2_reference_mexsolve(A, b);
+    x = mmex.dgetf2_reference_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -185,13 +185,13 @@ function testDgetrf2_reference(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetrf2_reference_mex(A);
+    [LU, ipiv] = mmex.dgetrf2_reference(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetrf2_reference_mexsolve(A, b);
+    x = mmex.dgetrf2_reference_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -199,13 +199,13 @@ function testDgetrf_reference(testCase)
     rng(0);
     n = 4;
     [A, ~, ~] = randtriplet(n);
-    [LU, ipiv] = dgetrf_reference_mex(A);
+    [LU, ipiv] = mmex.dgetrf_reference(A);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A(ipiv, :), 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dgetrf_reference_mexsolve(A, b);
+    x = mmex.dgetrf_reference_solve(A, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -214,17 +214,17 @@ function testDmltf2(testCase)
     n = 4;
     [A, v, w] = randtriplet(n, left=true);
     A0 = A; A0(1:n+1:end) = nan;
-    LU = dmltf2_mex(A0, v, w);
+    LU = mmex.dmltf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     % test with more outputs
-    [LU, info] = dmltf2_mex(A0, v, w);
+    [LU, info] = mmex.dmltf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);    
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
     testCase.verifyEqual(info, 0);
-    [LU, info, outw] = dmltf2_mex(A0, v, w);
+    [LU, info, outw] = mmex.dmltf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
@@ -232,7 +232,7 @@ function testDmltf2(testCase)
     testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmltf2_mexsolve(A0, v, w, b);
+    x = mmex.dmltf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -241,7 +241,7 @@ function testDmltrf2(testCase)
     n = 4;
     [A, v, w] = randtriplet(n, left=true);
     A0 = A; A0(1:n+1:end) = nan;
-    [LU, info, outw] = dmltrf2_mex(A0, v, w);
+    [LU, info, outw] = mmex.dmltrf2(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
@@ -249,7 +249,7 @@ function testDmltrf2(testCase)
     testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmltrf2_mexsolve(A0, v, w, b);
+    x = mmex.dmltrf2_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -260,7 +260,7 @@ function testDmltrf(testCase)
     A0 = A; A0(1:n+1:end) = nan;
     % try different block sizes
     for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        [LU, info, outw] = dmltrf_mex(A0, v, w, blocksize);
+        [LU, info, outw] = mmex.dmltrf(A0, v, w, blocksize);
         L = eye(n) + tril(LU, -1);
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
@@ -268,13 +268,13 @@ function testDmltrf(testCase)
         % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
     end
     % test also with the default block size
-    LU = dmltrf_mex(A0, v, w);
+    LU = mmex.dmltrf(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmltrf_mexsolve(A0, v, w, b);
+    x = mmex.dmltrf_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);
 end
 
@@ -285,7 +285,7 @@ function testDmltrff(testCase)
     A0 = A; A0(1:n+1:end) = nan;
     % try different block sizes
     for blocksize = [1 2 n/2 n-1 n n+1 2*n]
-        [LU, info, outw] = dmltrff_mex(A0, v, w, blocksize);
+        [LU, info, outw] = mmex.dmltrff(A0, v, w, blocksize);
         L = eye(n) + tril(LU, -1);
         U = triu(LU);
         testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
@@ -293,13 +293,13 @@ function testDmltrff(testCase)
         % testCase.verifyEqual(w / U, outw, 'RelTol', 1e-9);
     end
     % test also with the default block size
-    LU = dmltrff_mex(A0, v, w);
+    LU = mmex.dmltrff(A0, v, w);
     L = eye(n) + tril(LU, -1);
     U = triu(LU);
     testCase.verifyEqual(L*U, A, 'RelTol', 1e-9);
 
     b = rand(n, 2);
-    x = dmltrff_mexsolve(A0, v, w, b);
+    x = mmex.dmltrff_solve(A0, v, w, b);
     testCase.verifyEqual(x, A\b, 'RelTol', 1e-9);    
 end
 

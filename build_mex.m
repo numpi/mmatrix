@@ -9,10 +9,10 @@ function build_mex()
 
     for i = 1:length(fortran_files)
         fprintf('Compiling %s...\n', fortran_files{i});
-        mex("-c", "-largeArrayDims", fortran_files{i});
+        mex("-c", "-largeArrayDims", "-outdir", "+mmex", "fortran/"+fortran_files{i});
     end
 
-    if isfile('dmmtf2.o')
+    if isfile('+mmex/dmmtf2.o')
         objext = 'o';
     elseif isfile('dmmtf2.obj')
         objext = 'obj';
@@ -45,13 +45,13 @@ function build_mex()
     fprintf('\n=== All compilations complete! ===\n');
 
     function link_gateway(funname, dependencies, switches)
-        fprintf('Linking %s_mex...\n', funname);
-        dep_objects = cellfun(@(x) x+"."+objext, dependencies, UniformOutput=false);
+        fprintf('Linking %s...\n', funname);
+        dep_objects = cellfun(@(x) "+mmex/"+x+"."+objext, dependencies, UniformOutput=false);
         additional_parameters = cellfun(@(x) "-D"+x, switches, UniformOutput=false);
-        mex("-largeArrayDims", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", funname+"_mex", "-DFUNNAME="+funname, additional_parameters{:});
+        mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", funname, "-DFUNNAME="+funname, additional_parameters{:});
         % build also the _solve version
-        solvername = funname + "_mexsolve";
+        solvername = funname + "_solve";
         fprintf('Linking %s...\n', solvername);
-        mex("-largeArrayDims", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE_RHS");
+        mex("-largeArrayDims", "-outdir", "+mmex", "mex_gateway.c", dep_objects{:}, "-lmwlapack", "-lmwblas", "-output", solvername, "-DFUNNAME="+funname, additional_parameters{:}, "-DSOLVE_RHS");
     end
 end

@@ -10,7 +10,7 @@ import numpy as np
 def compile_fortran_modules():
     cmd = [sys.executable, "-m", "numpy.f2py", "-c",
            "-m", "mmatrixlapack", "--fcompiler=gnu95", "-lopenblas",
-           "dmmtf2.f", "dmmtrf2.f", "dmmtrf.f", "dmmtrff.f", "dgetf2.f", "dgetrf2.f"]
+           "../fortran/dmmtf2.f", "../fortran/dmmtrf2.f", "../fortran/dmmtrf.f", "../fortran/dmmtrff.f", "../fortran/dgetf2_reference.f", "../fortran/dgetrf2_reference.f"]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:    
         print("Fortran code compilation failed:")
@@ -40,8 +40,17 @@ def dgetf2_fortran(A):
     A_f = np.asfortranarray(A.copy())
     ipiv = np.zeros(min(m, n), dtype=np.int32)
     info = np.array(0, dtype=np.int32)
-    mmatrixlapack.dgetf2(m=m, n=n, a=A_f, lda=m, ipiv=ipiv, info=info)
+    mmatrixlapack.dgetf2_reference(m=m, n=n, a=A_f, lda=m, ipiv=ipiv, info=info)
     return A_f, ipiv, info[()]
+
+# ------------------------------------------------------------
+# DMMTF2 Fortran
+def dmmtf2_fortran(A, v, w):
+    m, n = A.shape
+    A_f = np.asfortranarray(A)
+    info = np.array(0, dtype=np.int32)
+    mmatrixlapack.dmmtf2(m=m, n=n, a=A_f, lda=m, v=v, w=w, info=info)
+    return A_f, info[()]
 
 # ------------------------------------------------------------
 # DMMTRF Fortran via dmmtf2

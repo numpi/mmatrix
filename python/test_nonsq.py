@@ -103,9 +103,6 @@ def lu_residual(A, LU):
 # Main rectangular test driver
 # ------------------------------------------------------------
 def run_test(sizes, num_repeats):
-    import dmmtf2
-    import dmmtrf
-    import dgetf2
 
     print(f"{'m':>6} {'n':>6} "
           f"{'dmmtf2 res':>14} "
