@@ -14,7 +14,7 @@ function build_mex()
 
     if isfile('+mmex/dmmtf2.o')
         objext = 'o';
-    elseif isfile('dmmtf2.obj')
+    elseif isfile('+mmex/dmmtf2.obj')
         objext = 'obj';
     else
         error('unknown compiled object file extension');
