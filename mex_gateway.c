@@ -192,7 +192,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mwSignedIndex nb;
     
     if (nrhs > min_inputs)
-        nb  = (mwSignedIndex) mxGetScalar(prhs[3]);
+        nb  = (mwSignedIndex) mxGetScalar(prhs[min_inputs]);
     else
         nb = F77_NAME(ilaenv)(&one, "DGETRF", " ", &M, &N, &minus_one, &minus_one);
 
@@ -290,7 +290,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     -------------------------------------------------- */
 
 #ifdef HAS_WORK
-
     if (work) { mxFree(work); work = NULL; }
 #endif
 
