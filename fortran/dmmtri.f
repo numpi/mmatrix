@@ -31,8 +31,7 @@ C
 C     TEST THE INPUT PARAMETERS.
 C
       INFO = 0
-C     If NB from ILAENV is not optimal, we can load it to input 
-      NB = ILAENV( 1, 'DMMTRI', ' ', N, -1, -1, -1 )
+      NB = ILAENV( 1, 'DGETRI', ' ', N, -1, -1, -1 )
       LWKOPT = MAX( 1, N*NB )
       WORK( 1 ) = LWKOPT
 C
