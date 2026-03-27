@@ -1,4 +1,4 @@
-classdef mmatrix
+classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
     % mmatrix - a MATLAB class for triplet M-matrices
     %  an n x n M-matrix M is represented through (M, u, v)
     %  u is a positive vector, v is a nonegative vector
@@ -178,10 +178,6 @@ classdef mmatrix
             end
         end
         %------------------------------------------------------------------
-        function A = subrefs(M,S)
-            A = M.M(S)
-        end
-        %------------------------------------------------------------------
         function v = perron(M)
             % Not defined
         end
@@ -235,11 +231,35 @@ classdef mmatrix
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end
+
+    end
+
+    % the following methods are required from matlab.mixin.indexing.RedefinesParen
+    methods 
+        function C = cat(dim, varargin)
+            error('Concatenation is unsupported: construct a new mmatrix')
+        end
+        function e = empty(varargin)
+            e = mmatrix([], [], []);
+        end
         function sz = size(obj, varargin)
             sz = size(obj.M, varargin{:});
         end
-        function sz = length(obj)
-            sz = length(obj.M);
+    end
+
+    % the following methods are required from matlab.mixin.indexing.RedefinesParen
+    methods (Access=protected)
+        function out = parenAssign(varargin)
+            error('Modification is unsupported: construct a new mmatrix');
+        end
+        function parenDelete(varargin)
+            error('Modification is unsupported; construct a new mmatrix');
+        end        
+        function n = parenListLength(obj,indexOp,ctx)
+            n = parenListLength(obj.M, indexOp, ctx);
+        end
+        function result = parenReference(obj, indexOp)
+            result = obj.M.(indexOp);
         end
     end
 end
