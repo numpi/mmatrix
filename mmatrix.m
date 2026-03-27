@@ -155,7 +155,7 @@ classdef mmatrix
             else
                 Mf = dmmtrff(obj.M, obj.u, obj.v);
             end
-            X = dmmtri(Mf, obj.u, obj.v);
+            X = dmmtri(Mf);
         end
         %------------------------------------------------------------------
         function X = mrdivide(obj, B)
