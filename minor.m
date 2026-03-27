@@ -1,47 +1,53 @@
-function [A1, A2] = minor(A, p, q)
-% [A1, A2] = minor(A, p, q)
-% computes the minor and the Schur complement of A
+function [M1, M2] = minor(obj, p, q)
+% ------------------------------------------------------------
+% [M1, M2] = minor(obj, p, q)
+% computes the minor and the Schur complement of M
 %   with respect to the indices p  and q in triplet mmatrix form
-% A: triplet mmatrix
+% M: triplet mmatrix (obj.M)
 % p: a vector of indices
 % q: the remaining indices (optional)
-% A1: the minor as a triplet mmatrix
-% A2: the Schur complement as a triplet mmatrix
-
-off = A.off; u = A.u; v = A.v;
-m = length(p); n = A.n;
+% M1: the minor as a triplet mmatrix
+% M2: the Schur complement as a triplet mmatrix
+%
+% We assume the matrix M is partitioned as:
+%
+%   M = [ M11  M12 ]
+%       [ M21  M22 ]
+% and M u = v (or  u' M = v')
+%
+% Schur complement:
+%  S = M22 - M21 * M11^{-1} * M12
+% RHS update:
+% for the right triplet: v2 = v2 - M21 * (M11^{-1} v1)
+% for the left triplet: v2' = v2' - (v1' * M11^{-1}) * M12
+% ------------------------------------------------------------
+M = obj.M;
+u = obj.u;
+v = obj.v;
+n = obj.n;
 
 if nargin < 3
-    % bugged
-    pp = sort(p);
-    ct = 1; q = [];
-    for ell = 1:n
-        ell, pp(ct), pause
-        if ne(pp(ct), ell)
-            q = [q ell], pause
-        else
-            ct = ct+1;
-        end
-    end
+    q = setdiff(1:n, p);
 end
 
-off1 = off(p, p);
-u1 = u(p);
-v1 = v(p) - off(p, q)*u(q);
-A1 = mmatrix(off1, u1, v1);
+%  block partition
+M11 = M(p,p);
+M12 = M(p,q);
+M21 = M(q,p);
+M22 = M(q,q);
+u1 = u(p); u2 = u(q);
+v1 = v(p); v2 = v(q);
 
-off2 = off(q, q) - off(q, p)*(A1\off(p, q));
-u2 = u(q);
-v2 = v(q) - off(q, p)*(A1\v(p));
-A2 = mmatrix(off2, u2, v2);
+% Compute the Schur complement
+S = M22 - M21 * (M11 \ M12);
 
-% U = A_{22} - A_{21}*inv(A_{11})*A_{12}
-% A_{11}u_1 + A_{12}u_2 = v_1
-% A_{21}u_1 + A_{22}u_2 = v_2
-% Uu_2 = A_{22}u_2 - A_{21}*inv(A_{11})*A_{12}u_2
-%      = v_2 - A_{21}u_1 - A_{21}*inv(A_{11})*(v_1-A_{11}u_1)
-%      = v_2 - A_{21}u_1 - A_{21}*(inv(A_{11})*v_1-u_1)
-%      = v_2 - A_{21}u_1 - A_{21}*inv(A_{11})*v_1 + A_{21}u_1
-%      = v_2 - A_{21}*inv(A_{11})*v_1 >= 0
-
+if obj.left
+    v2 = v2 - (v1 / M11) * M12;
+    M1 = mmatrix(M11, u1, v1, left=true);
+    M2 = mmatrix(S,   u2, v2, left=true);
+else
+    v2 = v2 - M21 * (M11 \ v1);
+    M1 = mmatrix(M11, u1, v1);
+    M2 = mmatrix(S,   u2, v2);
+end
 end
