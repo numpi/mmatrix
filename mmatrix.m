@@ -208,19 +208,23 @@ classdef mmatrix
         end
         %------------------------------------------------------------------
         function C = plus(A, B)
-            warning('used double for the sum, results may not be componentwise accurate')
-            C = double(A) + double(B);
+            if A.left == B.left && isequal(A.u, B.u)
+                C = mmatrix(A.M+B.M, A.u, A.v+B.v, left=A.left);
+            else
+                warning('mmatrix:inaccurate', 'converted to double for the sum, results may not be componentwise accurate')
+                C = double(A) + double(B);
+            end
         end
         function C = minus(A, B)
-            warning('used double for the subtraction, results may not be componentwise accurate')
+            warning('mmatrix:inaccurate', 'converted to double for the subtraction, results may not be componentwise accurate')
             C = double(A) - double(B);
         end
         function C = mprod(A, B)
-            warning('used double for the product, results may not be componentwise accurate')
+            warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
             C = double(A) * double(B);
         end
         function x = norm(A)
-            warning('norm undefined for triplet mmatrix, used double(A)')
+            warning('mmatrix:inaccurate', 'norm undefined for triplet mmatrix, used double(A)')
             x = norm(double(A));
         end
     end
