@@ -137,9 +137,9 @@ classdef mmatrix
                 warning('mmatrix:inaccurate', 'B is not nonnegative, result may not be componentwise accurate');
             end
             if obj.left
-                X = dmltrff_solve(obj.M, obj.u, obj.v, B);
+                X = mmex.dmltrff_solve(obj.M, obj.u, obj.v, B);
             else
-                X = dmmtrff_solve(obj.M, obj.u, obj.v, B);
+                X = mmex.dmmtrff_solve(obj.M, obj.u, obj.v, B);
             end
         end
         %------------------------------------------------------------------
@@ -151,16 +151,16 @@ classdef mmatrix
             % here we can use dmmtri for the both left and right triplet
             % because it does not depent on u and v
             if obj.left
-                Mf = dmltrff(obj.M, obj.u, obj.v);
+                Mf = mmex.dmltrff(obj.M, obj.u, obj.v);
             else
-                Mf = dmmtrff(obj.M, obj.u, obj.v);
+                Mf = mmex.dmmtrff(obj.M, obj.u, obj.v);
             end
             X = dmmtri(Mf);
         end
         %------------------------------------------------------------------
-        function X = mrdivide(obj, B)
-            % X = mldivide(M, B)
-            % Computes M\B, accurate if B is nonnegative
+        function X = mrdivide(B, obj)
+            % X = mrdivide(B, M)
+            % Computes B/M, accurate if B is nonnegative
             % M: triplet mmatrix
             % B: left hand side
             % X: B/M
@@ -172,9 +172,9 @@ classdef mmatrix
                 warning('mmatrix:inaccurate', 'B is not nonnegative, result may not be componentwise accurate');
             end
             if obj.left
-                X = dmltrff_lsolve(obj.M, obj.u, obj.v, B);
+                X = mmex.dmltrff_lsolve(obj.M, obj.u, obj.v, B);
             else
-                X = dmmtrff_lsolve(obj.M, obj.u, obj.v, B);
+                X = mmex.dmmtrff_lsolve(obj.M, obj.u, obj.v, B);
             end
         end
         %------------------------------------------------------------------

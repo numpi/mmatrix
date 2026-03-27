@@ -44,6 +44,10 @@ function testWarnings(testCase)
         testCase.verifyWarning(@() A+C, 'mmatrix:inaccurate');
         testCase.verifyWarning(@() A-C, 'mmatrix:inaccurate');
         testCase.verifyWarning(@() A*C, 'mmatrix:inaccurate');
+        % systems with indefinite rhs
+        D(1:2,1) = [1 -1];
+        testCase.verifyWarning(@() A \ D, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() D / A, 'mmatrix:inaccurate');
     end
 end
 
@@ -81,3 +85,14 @@ function testSum(testCase)
     end
 end
 
+function testmldivide(testCase)
+    for left = [true, false]
+        rng(0);
+        n = 9;
+        [AM, u, v] = randtriplet(n, left=left);
+        A = mmatrix(AM, u, v, left=left);
+        D = rand(n, 4);
+        testCase.verifyEqual(A \ D, double(A) \ D, RelTol=1e-9);
+        testCase.verifyEqual(D' / A, D' / double(A), RelTol=1e-9);
+    end
+end
