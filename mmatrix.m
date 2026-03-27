@@ -259,7 +259,18 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             n = parenListLength(obj.M, indexOp, ctx);
         end
         function result = parenReference(obj, indexOp)
-            result = obj.M.(indexOp);
+            if length(indexOp.Indices)==2 && isequal(indexOp.Indices(1), indexOp.Indices(2))
+                I = indexOp.Indices{1};
+                notI = true(size(obj,2), 1);
+                notI(I) = false;
+                if obj.left
+                    result = mmatrix(obj.M(I,I), obj.u(I), obj.v(I) - obj.u(notI)*obj.M(notI,I), left=true);
+                else
+                    result = mmatrix(obj.M(I,I), obj.u(I), obj.v(I) - obj.M(I,notI)*obj.u(notI), left=false);
+                end
+            else
+                result = obj.M.(indexOp);
+            end
         end
     end
 end

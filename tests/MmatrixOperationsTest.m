@@ -110,3 +110,20 @@ function testUtilityFunctions(testCase)
         testCase.verifyEqual(norm(A, 1), norm(double(A), 1), RelTol=1e-9);
     end
 end
+
+function testIndexing(testCase)
+    for left = [true, false]
+        rng(0);
+        n = 3;
+        [AM, u, v] = randtriplet(n, left=left);
+        A = mmatrix(AM, u, v, left=left);
+        % Test indexing for mmatrix
+        I1 = [false true true];
+        I2 = 1:2;
+        testCase.verifyEqual(A(I1, I2), AM(I1,I2), RelTol=1e-9);
+        testCase.verifyEqual(double(A(I1, I1)), AM(I1,I1), RelTol=1e-9);
+        testCase.verifyClass(A(I1, I1), 'mmatrix');
+        testCase.verifyEqual(double(A(I2, I2)), AM(I2,I2), RelTol=1e-9);
+        testCase.verifyClass(A(I2, I2), 'mmatrix');
+    end
+end
