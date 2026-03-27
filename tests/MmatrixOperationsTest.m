@@ -96,3 +96,17 @@ function testmldivide(testCase)
         testCase.verifyEqual(D' / A, D' / double(A), RelTol=1e-9);
     end
 end
+
+function testUtilityFunctions(testCase)
+    for left = [true, false]
+        rng(0);
+        n = 9;
+        [AM, u, v] = randtriplet(n, left=left);
+        A = mmatrix(AM, u, v, left=left);
+        testCase.verifyEqual(size(A), [n n]);
+        testCase.verifyEqual(size(A,1), n);
+        testCase.verifyEqual(length(A), n);
+        testCase.verifyEqual(norm(A), norm(double(A)), RelTol=1e-9);
+        testCase.verifyEqual(norm(A, 1), norm(double(A), 1), RelTol=1e-9);
+    end
+end

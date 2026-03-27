@@ -232,9 +232,14 @@ classdef mmatrix
             warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
             C = double(A) * double(B);
         end
-        function x = norm(A)
-            warning('mmatrix:inaccurate', 'norm undefined for triplet mmatrix, used double(A)')
-            x = norm(double(A));
+        function x = norm(A, varargin)
+            x = norm(double(A), varargin{:});
+        end
+        function sz = size(obj, varargin)
+            sz = size(obj.M, varargin{:});
+        end
+        function sz = length(obj)
+            sz = length(obj.M);
         end
     end
 end
