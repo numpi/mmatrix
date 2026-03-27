@@ -18,6 +18,35 @@ function testCreation(testCase)
     end
 end
 
+function testWarnings(testCase)
+    for left = [true, false]
+        rng(0);
+        n = 5;
+        [AM, u, v] = randtriplet(n, left=left);
+        A = mmatrix(AM, u, v, left=left);
+        [BM, uB, vB] = randtriplet(n, left=left);
+        B = mmatrix(BM, uB, vB, left=false);
+        C = mmatrix(BM, uB, vB, left=true);
+
+        D = rand(n);
+        % mmatrix op double
+        testCase.verifyWarning(@() A+D, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A-D, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A*D, 'mmatrix:inaccurate');
+        % double op mmatrix
+        testCase.verifyWarning(@() D+A, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() D-A, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() D*A, 'mmatrix:inaccurate');
+        % mmatrix op mmatrix
+        testCase.verifyWarning(@() A+B, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A-B, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A*B, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A+C, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A-C, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() A*C, 'mmatrix:inaccurate');
+    end
+end
+
 function testSum(testCase)
     for left = [true, false]
         rng(0);
@@ -51,3 +80,4 @@ function testSum(testCase)
         testCase.verifyEqual(double(C), double(A)+double(B), RelTol=1e-9);
     end
 end
+

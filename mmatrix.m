@@ -133,8 +133,8 @@ classdef mmatrix
             if ne(n1, obj.n)
                 error('sizes of M and B are not compatible');
             end
-            if sum(sum(B<0)) > 0
-                warning('B is no nonnegative, result may not be componentwise accurate');
+            if any(B(:) < 0)
+                warning('mmatrix:inaccurate', 'B is not nonnegative, result may not be componentwise accurate');
             end
             if obj.left
                 X = dmltrff_solve(obj.M, obj.u, obj.v, B);
@@ -168,8 +168,8 @@ classdef mmatrix
             if ne(m1, obj.n)
                 error('sizes of M and B are not compatible');
             end
-            if sum(sum(B<0)) > 0
-                warning('B is no nonnegative, result may not be componentwise accurate');
+            if any(B(:) < 0)
+                warning('mmatrix:inaccurate', 'B is not nonnegative, result may not be componentwise accurate');
             end
             if obj.left
                 X = dmltrff_lsolve(obj.M, obj.u, obj.v, B);
@@ -219,7 +219,11 @@ classdef mmatrix
             warning('mmatrix:inaccurate', 'converted to double for the subtraction, results may not be componentwise accurate')
             C = double(A) - double(B);
         end
-        function C = mprod(A, B)
+        function C = times(A, B)
+            warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
+            C = double(A) .* double(B);
+        end
+        function C = mtimes(A, B)
             warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
             C = double(A) * double(B);
         end
