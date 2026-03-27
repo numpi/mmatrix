@@ -194,17 +194,22 @@ classdef mmatrix
     %----------------------------------------------------------------------
     methods %
         function disp(obj)
-            fprintf('\nM:\n');
+            fprintf('M-matrix with entries\n');
             if obj.n <= 10
                 disp(obj.M)
             else
                 disp(obj.M(1:10,1:10))
                 fprintf('... (truncated)\n');
             end
-            fprintf('\nu:\n');
-            disp(obj.u.');
-            fprintf('v:\n');
-            disp(obj.v.');
+            if obj.left
+                relation = 'u*M = v';
+            else
+                relation = 'M*u = v';
+            end
+            fprintf('satisfying %s with u =\n', relation);
+            disp(obj.u);
+            fprintf('and v=\n');
+            disp(obj.v);
         end
         %------------------------------------------------------------------
         function C = plus(A, B)
