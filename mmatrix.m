@@ -1,14 +1,16 @@
 classdef mmatrix
     % mmatrix - a MATLAB class for triplet M-matrices
     %  an n x n M-matrix M is represented through (M, u, v)
-    %  u is a positive vector, v is a nonegative vector such that M*u = v
+    %  u is a positive vector, v is a nonegative vector
 
     % Properties of the class
     properties (SetAccess = public)
         M (:, :)   % an M-matrix M
-        u (:, :) {mustBePositive} % positive vector	such that Mu = v
-        v (:, :) {mustBeNonnegative} % nonnegative vector such that Mu = v
-        left (1,1) logical % true = left, false = right
+        u (:, :) {mustBePositive} % positive vector	 
+        v (:, :) {mustBeNonnegative} % nonnegative vector  
+        left (1,1) logical
+        % left = true  --> u' M = v'
+        % left = false --> M u = v
     end
     properties (Dependent)
         n % size of the triplet mmatrix
@@ -20,8 +22,8 @@ classdef mmatrix
             % get the size of the triplet
             n = size(obj.M, 1);
         end
-
     end
+        %------------------------------------------------------------------
 
     methods % utilities
 
@@ -29,162 +31,185 @@ classdef mmatrix
             % obj = mmatrix(M, u, v, ops)
             % Constructor for triplet mmatrix
             % M: an M-matrix
-            % u, v: positive and nonnegative vectors such that M*u = v
+            % u, v: positive and nonnegative vectors such that M*u = v(or u' M = v')
             arguments
                 M (:,:)
-                u (:,1) {mustBePositive}
-                v (:,1) {mustBeNonnegative}
+                u (:,:) {mustBePositive}
+                v (:,:) {mustBeNonnegative}
                 opts.left (1,1) logical = false
             end
             [n, m] = size(M);
-
             if ne(n, m)
                 error('M must be a square matrix');
             end
-
-            if nargin < 4
-                opts.left = false;
-            end
             obj.left = opts.left;
+
             if obj.left
-                % left triplet
-                if ne(size(u,2), n) || ne(size(v,2), n)
-                    error('u and v should have the same size as M');
-                end
+                u = u(:)'; v = v(:)';
             else
-                % right triplet
-                if ne(size(u,1), n) || ne(size(v,1), n)
-                    error('u and v should have the same size as M');
-                end
+                u = u(:);  v = v(:);
             end
-                
+            if length(u) ~= n || length(v) ~= n
+                error('u and v should have length n');
+            end
             M(1:n+1:n^2) = 0;
-            M(1:n+1:n^2) = (v - M*u)./u;
-            
+            if obj.left
+                M(1:n+1:n^2) = (v - u*M )./u;
+            else
+                M(1:n+1:n^2) = (v - M*u) ./ u;
+            end
             obj.M = M;
             obj.u = u;
             obj.v = v;
         end
-
-        function Ad = double(obj)
-            % Ad = double(A)
-            % makes the triplet mmatrix A a matrix of doubles
-            % A: triplet mmatrix
-            % Ad: the mmatrix A as a double
-            Ad = obj.M;
+        %------------------------------------------------------------------
+        function Md = double(obj)
+            % Md = double(M)
+            % makes the triplet mmatrix M a matrix of doubles
+            % M: triplet mmatrix
+            % Md: the mmatrix M as a double
+            Md = obj.M;
         end
-
-        function A2 = vpa(obj, f)
-            % A2 = vpa(A, f)
+        %------------------------------------------------------------------
+        function M2 = vpa(obj, f)
+            % M2 = vpa(M, f)
             % Makes the triplet mmatrix a vpa matrix
-            % A: triplet mmatrix
+            % M: triplet mmatrix
             % f: digits (optional, default = 40)
-            % A2: the triplet mmatrix A as a vpa
+            % M2: the triplet mmatrix M as a vpa
             if nargin < 2
                 f = 40;
             end
-            M = vpa(obj.M, f); u = vpa(obj.u, f); v = vpa(obj.v, f);
+            n=obj.n;
+            M = vpa(obj.M, f);
+            u = vpa(obj.u, f);
+            v = vpa(obj.v, f);
             M(1:n+1:n^2) = 0;
-            d = (v - M*u)./u;
-            A2 = diag(d) + M;
+            if obj.left
+                d = (v - u*M )./u;
+            else
+                d = (v - M*u) ./ u;
+            end
+            M2 = diag(d) + M;
         end
     end
 
     methods % algorithms
-
+        %------------------------------------------------------------------
         function [L, U] = lu(obj)
-            % [L, U] = lu(A)
+            % [L, U] = lu(M)
             % computes the LU factorization of the triplet mmatrix with
             % the GTH algorithm implemented in Fortran
-            % A: triplet mmatrix
+            % M: triplet mmatrix
             % L, U: factors of the LU factorization
             if obj.left
-                U = dmltrff_mex(obj.M, obj.u, obj.v);
+                U = dmltrff(obj.M, obj.u, obj.v);
             else
-                U = dmmtrff_mex(obj.M, obj.u, obj.v);
+                U = dmmtrff(obj.M, obj.u, obj.v);
             end
             L = tril(U,-1) + eye(obj.n);
             U = triu(U);
         end
-
+        %------------------------------------------------------------------
         function [L, U] = lumatlab(obj)
-            % [L, U] = lu(A)
-            % Forms the LU factorization of A
-            % A: triplet mmatrix
+            % [L, U] = lu(M)
+            % Forms the LU factorization of M
+            % M: triplet mmatrix
             % L, U: factors
-            M = obj.M; u = obj.u; v = obj.v;
-            n = obj.n;
-            L = eye(n);
-            U = M;
-            for ell = 1:n
-                U(ell, ell) = (v(ell) - U(ell, ell+1:n)*u(ell+1:n) )/u(ell);
-                L(ell+1:n, ell) = U(ell+1:n, ell)/U(ell, ell);
-                v(ell+1:n) = v(ell+1:n) - L(ell+1:n, ell)*v(ell);
-                U(ell+1:n, ell+1:n) = U(ell+1:n, ell+1:n) - ...
-                    L(ell+1:n, ell)*U(ell, ell+1:n);
-                U(ell+1:n, ell) = 0;
+            if obj.left
+                [L, U] = gthlu(obj.M, obj.u, obj.v,'left');
+            else
+                [L, U] = gthlu(obj.M, obj.u, obj.v);
             end
         end
-
+        %------------------------------------------------------------------
         function X = mldivide(obj, B)
-            % X = mldivide(A, B)
-            % Computes A\B, accurate if B is nonnegative
-            % A: triplet mmatrix
+            % X = mldivide(M, B)
+            % Computes M\B, accurate if B is nonnegative
+            % M: triplet mmatrix
             % B: right hand side
-            % X: A\B
-            [n1, m] = size(B);
+            % X: M\B
+            n1= size(B,1);
             if ne(n1, obj.n)
-                error('sizes of A and B are not compatible');
+                error('sizes of M and B are not compatible');
             end
-
             if sum(sum(B<0)) > 0
                 warning('B is no nonnegative, result may not be componentwise accurate');
             end
             if obj.left
-                X = dmltrff_mexsolve(obj.M, obj.u, obj.v, B);
+                X = dmltrff_solve(obj.M, obj.u, obj.v, B);
             else
-                X = dmmtrff_mexsolve(obj.M, obj.u, obj.v, B);
+                X = dmmtrff_solve(obj.M, obj.u, obj.v, B);
             end
         end
-
-
-        function X = inv(M)
+        %------------------------------------------------------------------
+        function X = inv(obj)
             % X = inv(M)
             % computes the inverse of the triplet mmatrix M
             % M: triplet mmatrix
-            % X: inv(M)
-            X = M\eye(obj.n);
-            % X = dmmtri_mex(obj.M, obj.u, obj.v);
-        end
-        %		function [A1, A2] = minor(A, p, q)
-
-        function X = mrdivide(obj, B)  
-              % [n1, m] = size(B);
-  
+            % X = obj.M\eye(obj.n);
             if obj.left
-                X = dmltrff_solve(obj.M, obj.u, obj.v, B');
+                % Mf = dmltrff(obj.M, obj.u, obj.v);
+                % X = dmmtri_mex(Mf, obj.u, obj.v); this works too.
+                X = dmltrff_solve(obj.M, obj.u, obj.v, eye(obj.n));
             else
-                X = dmmtrff_solve(obj.M, obj.u, obj.v, B');
+                Mf = dmmtrff(obj.M, obj.u, obj.v); 
+                X = dmmtri_mex(Mf, obj.u, obj.v);
+                % equivalently, we can solve a linear system with I in the right side,
+                % but dmmtri seems to be faster. 
+                % X = dmltrff_solve(obj.M, obj.u, obj.v, eye(obj.n)); 
             end
         end
- 
+        %------------------------------------------------------------------
+        function X = mrdivide(obj, B)
+            % X = mldivide(M, B)
+            % Computes M\B, accurate if B is nonnegative
+            % M: triplet mmatrix
+            % B: left hand side
+            % X: B/M
+            m1 = size(B,2);
+            if ne(m1, obj.n)
+                error('sizes of M and B are not compatible');
+            end
+            if sum(sum(B<0)) > 0
+                warning('B is no nonnegative, result may not be componentwise accurate');
+            end
+            if obj.left
+                X = dmltrff_lsolve(obj.M, obj.u, obj.v, B);
+            else
+                X = dmmtrff_lsolve(obj.M, obj.u, obj.v, B);
+            end
+        end
+        %------------------------------------------------------------------
         function A = subrefs(M,S)
-            
-
             A = M.M(S)
         end
-
+        %------------------------------------------------------------------
         function v = perron(M)
             % Not defined
         end
-
+        %------------------------------------------------------------------
         function B = sqrtm(M)
             % Not defined
         end
     end
 
+    %----------------------------------------------------------------------
     methods %
-
+        function disp(obj)
+            fprintf('\nM:\n');
+            if obj.n <= 10
+                disp(obj.M)
+            else
+                disp(obj.M(1:10,1:10))
+                fprintf('... (truncated)\n');
+            end
+            fprintf('\nu:\n');
+            disp(obj.u.');
+            fprintf('v:\n');
+            disp(obj.v.');
+        end
+        %------------------------------------------------------------------
         function C = plus(A, B)
             warning('used double for the sum, results may not be componentwise accurate')
             C = double(A) + double(B);
