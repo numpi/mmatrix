@@ -148,17 +148,14 @@ classdef mmatrix
             % computes the inverse of the triplet mmatrix M
             % M: triplet mmatrix
             % X = obj.M\eye(obj.n);
+            % here we can use dmmtri for the both left and right triplet
+            % because it does not depent on u and v
             if obj.left
-                % Mf = dmltrff(obj.M, obj.u, obj.v);
-                % X = dmmtri_mex(Mf, obj.u, obj.v); this works too.
-                X = dmltrff_solve(obj.M, obj.u, obj.v, eye(obj.n));
+                Mf = dmltrff(obj.M, obj.u, obj.v);
             else
-                Mf = dmmtrff(obj.M, obj.u, obj.v); 
-                X = dmmtri_mex(Mf, obj.u, obj.v);
-                % equivalently, we can solve a linear system with I in the right side,
-                % but dmmtri seems to be faster. 
-                % X = dmltrff_solve(obj.M, obj.u, obj.v, eye(obj.n)); 
+                Mf = dmmtrff(obj.M, obj.u, obj.v);
             end
+            X = dmmtri(Mf, obj.u, obj.v);
         end
         %------------------------------------------------------------------
         function X = mrdivide(obj, B)
