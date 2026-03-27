@@ -208,7 +208,7 @@ classdef mmatrix
         end
         %------------------------------------------------------------------
         function C = plus(A, B)
-            if A.left == B.left && isequal(A.u, B.u)
+            if isa(A, 'mmatrix') && isa(B, 'mmatrix') && A.left == B.left && isequal(A.u, B.u)
                 C = mmatrix(A.M+B.M, A.u, A.v+B.v, left=A.left);
             else
                 warning('mmatrix:inaccurate', 'converted to double for the sum, results may not be componentwise accurate')
