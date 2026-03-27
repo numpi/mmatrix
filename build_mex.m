@@ -45,7 +45,7 @@ function build_mex()
 
     % this last file is built without the gateway, with a separate .c file
     fprintf('Linking dmmtri.f...\n');
-    mex("-largeArrayDims", "-outdir", "+mmex", "fortran/dmmtri_mex.c", "+mmex/dmmtri.o", "-lmwlapack", "-lmwblas", "-output", "dmmtri");
+    mex("-largeArrayDims", "-outdir", "+mmex", "fortran/dmmtri_mex.c", "+mmex/dmmtri."+objext, "-lmwlapack", "-lmwblas", "-output", "dmmtri");
 
     fprintf('\n=== All compilations complete! ===\n');
 
