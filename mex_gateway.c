@@ -4,9 +4,15 @@
    This code contains a Mex wrapper around a Fortran subroutine
    specified in the macro FUNNAME
 
-   If SOLVE, the wrapper also solves a linear system.
+   If SOLVE is defined, the wrapper also solves a linear system.
    If LEFT_SOLVE, this linear system is X A = B instead of A X = B.
    
+   If HAS_WORK is provided, a temporary array WORK is allocated
+   and passed to the subroutine. 
+   This array normally has size N, but if WORK_SIZE_NB, then it has
+   size NB, and if WORK_SIZE_DMMTRFF then the size is either 2*NB or N,
+   according to what DMMTRFF needs.
+
    Inputs:
 
    Mandatory:
@@ -198,8 +204,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     worksize = nb;
 #endif
-#ifdef WORK_SIZE_2NB
-    worksize = 2*nb;
+#ifdef WORK_SIZE_DMMTRFF
+    if(nb == 1)
+        worksize = n;
+    else
+        worksize = 2*nb;
 #endif
     mwSignedIndex info = 0;
 

@@ -25,7 +25,7 @@ function build_mex()
     link_gateway("dmmtf2", {"dmmtf2"}, {"HAS_TRIPLET"});
     link_gateway("dmmtrf2", {"dmmtrf2"}, {"HAS_TRIPLET", "HAS_WORK"});
     link_gateway("dmmtrf", {"dmmtf2", "dmmtrf"}, {"HAS_TRIPLET", "HAS_WORK", "HAS_NB"});
-    link_gateway("dmmtrff", {"dmmtrf2", "dmmtrff"}, {"HAS_TRIPLET", "HAS_WORK", "HAS_NB", "WORK_SIZE_2NB"});
+    link_gateway("dmmtrff", {"dmmtrf2", "dmmtrff"}, {"HAS_TRIPLET", "HAS_WORK", "HAS_NB", "WORK_SIZE_DMMTRFF"});
 
     link_gateway("dmltf2", {"dmltf2"}, {"HAS_TRIPLET", "LEFT_TRIPLET"});
     link_gateway("dmltrf2", {"dmltrf2"}, {"HAS_TRIPLET"});

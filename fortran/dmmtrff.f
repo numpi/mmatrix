@@ -1,6 +1,12 @@
 
 C======================================================================
 C     DMMTRFF: Blocked version of the GTH algorithm with DMMTRF2 inside
+C
+C     This method requires WORK of size 2NB: NB entries are used
+C     in the algorithm, NB entries are passed to DMMTRF2
+C     However, if NB==1, then the algorithm falls back to DMMTRF2,
+C     and an array WORK of size N is needed instead.
+C
 C======================================================================
       SUBROUTINE DMMTRFF( M, N, A, LDA, V, W, WORK, NB, INFO )
       INTEGER            M, N, LDA, NB, INFO
@@ -33,7 +39,7 @@ C     Test input parameters
       K = MIN( M, N )
       IF ( K .EQ. 0 ) RETURN
       
-      IF ( NB .GE. K ) THEN
+      IF ( NB .EQ. 1 .OR. NB .GE. K ) THEN
          CALL DMMTRF2( M, N, A, LDA, V, W, WORK, INFO )
          RETURN
       END IF

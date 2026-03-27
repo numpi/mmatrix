@@ -1,5 +1,6 @@
 C======================================================================
 C     DMMTRF2  
+C     This recursive function needs WORK of size N
 C======================================================================
       RECURSIVE SUBROUTINE DMMTRF2(M, N, A, LDA, V, W, WORK, INFO)
       INTEGER            M, N, LDA, INFO
