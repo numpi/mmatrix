@@ -75,7 +75,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                     v = M*u;
                 end
                 if not(all(v>=0))
-                    warning('mmatrix:inaccurate', 'v is not nonnegative, results may not be componentwise accurate');
+                    error('invalid triplet: the product between M and u must be nonnegative')
                 end
             end
 
@@ -83,6 +83,9 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 error('u and v should have length n');
             end
             M(1:n+1:n^2) = 0;
+            if not(all(M(:)<=0))
+                error('invalid triplet: M cannot have positive off-diagonal entries');
+            end
             if obj.left
                 M(1:n+1:n^2) = (v - u*M )./u;
             else
