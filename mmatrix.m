@@ -242,8 +242,13 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         end
         %------------------------------------------------------------------
         function C = plus(A, B)
+            % Matrix sum with accurate paths for M+M, M+Diagonal, Diagonal+M
             if isa(A, 'mmatrix') && isa(B, 'mmatrix') && A.left == B.left && isequal(A.u, B.u)
                 C = mmatrix(A.M+B.M, A.u, A.v+B.v, left=A.left);
+            elseif isa(A, 'mmatrix') && isa(B, 'double') && isdiag(B) && all(diag(B)>=0)
+                C = A + mmatrix(B, A.u, left=A.left);
+            elseif isa(A, 'double') && isdiag(A) && all(diag(A)>=0) && isa(B, 'mmatrix')
+                C = mmatrix(A, B.u, left=B.left) + B;
             else
                 warning('mmatrix:inaccurate', 'converted to double for the sum, results may not be componentwise accurate')
                 C = double(A) + double(B);
@@ -268,7 +273,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
     end
 
     % the following methods are required from matlab.mixin.indexing.RedefinesParen
-    methods 
+    methods
         function C = cat(dim, varargin)
             error('Concatenation is unsupported: construct a new mmatrix')
         end
