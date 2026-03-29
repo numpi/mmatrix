@@ -15,6 +15,19 @@ function testCreation(testCase)
         [AM, u, v] = randtriplet(n, left=left);
         A = mmatrix(AM, u, v, left=left);
         testCase.verifyEqual(AM, double(A), RelTol=1e-9);
+
+        % test constructing without v
+        testCase.verifyWarning(@() mmatrix(AM, u, left=left), 'mmatrix:inaccurate');
+        DM = diag(diag(AM));
+        testCase.verifyWarningFree(@() mmatrix(DM, u, left=left), 'mmatrix:inaccurate');
+        D = mmatrix(DM, u, left=left);
+        testCase.verifyEqual(DM, double(D), RelTol=1e-9);
+
+        state = warning;
+        warning('off', 'mmatrix:inaccurate');
+            A = mmatrix(AM, u, left=left);
+            testCase.verifyEqual(AM, double(A), RelTol=1e-9);
+        warning(state);
     end
 end
 
@@ -61,8 +74,8 @@ function testSum(testCase)
         A = mmatrix(AM, u, v, left=left);
         B = mmatrix(BM, uB, vB, left=left);
     
-        state = warning;
         testCase.verifyWarning(@() A+B, 'mmatrix:inaccurate')
+        state = warning;
         warning('off', 'mmatrix:inaccurate');
             C = A + B;
             testCase.verifyClass(C, 'double');

@@ -28,14 +28,29 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
     methods % utilities
 
         function obj = mmatrix(M, u, v, opts)
-            % obj = mmatrix(M, u, v, ops)
             % Constructor for triplet mmatrix
+            %
+            % obj = mmatrix(M, u, v)
+            % obj = mmatrix(M, u, v, left=true)
+            %
             % M: an M-matrix
-            % u, v: positive and nonnegative vectors such that M*u = v(or u' M = v')
+            % u, v: positive and nonnegative vectors such that M*u = v 
+            % (or u' M = v' if left=true)
+            %
+            % The provided diagonal entries of M are ignored and recomputed from u
+            % and v instead.
+            %
+            % Optionally, v may be computed as M*u or u*M, if not provided,
+            % however, this is only componentwise accurate if M is diagonal
+            % and will give a warning otherwise:
+            %
+            % obj = mmatrix(D, u)
+            % obj = mmatrix(D, u, left=true)
+
             arguments
                 M (:,:)
                 u (:,:) {mustBePositive}
-                v (:,:) {mustBeNonnegative}
+                v (:,:) {mustBeNonnegative} = []
                 opts.left (1,1) logical = false
             end
             [n, m] = size(M);
@@ -49,6 +64,21 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             else
                 u = u(:);  v = v(:);
             end
+
+            if isempty(v)
+                if not(isdiag(M))
+                    warning('mmatrix:inaccurate', 'computed v from M, results may not be componentwise accurate')
+                end
+                if obj.left
+                    v = u*M;
+                else
+                    v = M*u;
+                end
+                if not(all(v>=0))
+                    warning('mmatrix:inaccurate', 'v is not nonnegative, results may not be componentwise accurate');
+                end
+            end
+
             if length(u) ~= n || length(v) ~= n
                 error('u and v should have length n');
             end
