@@ -211,6 +211,11 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             end
         end
         %------------------------------------------------------------------
+        function d = det(obj)
+            [~, U] = lu(obj);
+            d = prod(diag(U));
+        end
+        %------------------------------------------------------------------
         function v = perron(M)
             % Not defined
         end
