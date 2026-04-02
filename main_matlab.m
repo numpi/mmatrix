@@ -123,7 +123,7 @@ for k = 1:nt
     % Method 2: dmmtri (compute inverse from LU factors)
     tic; 
     U = mmex.dmmtrff(A, v, w);  % This gives the upper triangular factor
-    Ainv_dmmtri = dmmtri_mex(U);% Now compute inverse using dmmtri
+    Ainv_dmmtri = dmmtri(U);% Now compute inverse using dmmtri
     r.tinvd(k) = toc;
     r.nrm_invd(k) = norm(Ainv_dmmtri - Ainv_exact, 'fro') / norm(Ainv_exact, 'fro');
     r.comp_invd(k) = max(max(abs((Ainv_dmmtri - Ainv_exact) ./ Ainv_exact)));
