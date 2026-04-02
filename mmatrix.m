@@ -136,9 +136,9 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % M: triplet mmatrix
             % L, U: factors of the LU factorization
             if obj.left
-                U = dmltrff(obj.M, obj.u, obj.v);
+                U = mmex.dmltrff(obj.M, obj.u, obj.v);
             else
-                U = dmmtrff(obj.M, obj.u, obj.v);
+                U = mmex.dmmtrff(obj.M, obj.u, obj.v);
             end
             L = tril(U,-1) + eye(obj.n);
             U = triu(U);

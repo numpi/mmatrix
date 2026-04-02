@@ -140,3 +140,17 @@ function testIndexing(testCase)
         testCase.verifyClass(A(I2, I2), 'mmatrix');
     end
 end
+
+function testLU(testCase)
+    for left = [true, false]
+        rng(0);
+        n = 8;
+        [AM, u, v] = randtriplet(n, left=left);
+        A = mmatrix(AM, u, v, left=left);
+        % Test indexing for mmatrix
+        [L, U] = lu(A);
+        testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
+        [L, U] = lumatlab(A);
+        testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
+    end
+end
