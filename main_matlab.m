@@ -1,5 +1,6 @@
 function main_matlab()
-%  Solves a linear system with different factorization methods
+%--------------------------------------------------------------------------
+%  Solves a linear system with different factorization methods:
 %
 %   Methods compared:
 %   - GTH: pure MATLAB's GTH algorithm
@@ -9,14 +10,21 @@ function main_matlab()
 %   - dmmtf2, dmltf2: Unblocked versions of the GTH algorithm
 %   - dmltrf, dmmtrf: Blocked versions using dmltf2 and dmmtf2 inside
 %   - dmltrff, dmmtrff: Blocked versions with dmltrf2 and dmmtrf2 inside
-
+%--------------------------------------------------------------------------
+%  Inverse computation comparison:
+%
+%  This code compares three approaches for computing A^{-1}:
+%   1) MATLAB inv: MATLAB's built-in inv
+%   2) dmmtri: inverse reconstructed from LU factors of A
+%   3) dmmtrff_solve: solves A * X = I
+%--------------------------------------------------------------------------
 % build_mex() % this complies fortran codes
 
 clc;
 fprintf('The condition number varies with σ = 10^{-k} for k = 1 to 12.\n\n');
  
 % Problem parameters
-params.n = 128;                   % Matrix size (n x n)
+params.n = 128;                  % Matrix size (n x n)
 params.sigmas = 10.^(-(1:12));   % Range of sigma values (affects conditioning)
 params.h = 1 / (params.n + 1);   % Grid spacing
 params.v = ones(params.n, 1);    % Vector v
@@ -28,6 +36,7 @@ fprintf('  Grid spacing h = %.4f\n\n', params.h);
 
 results = run_experiments(params);
 create_fig(results);
+create_inverse_fig(results);
 end
 
 function r = run_experiments(params)
@@ -49,6 +58,11 @@ r.tgth    = z; r.tlu      = z;
 r.tdmmtf2 = z; r.tdmmtrf2 = z; r.tdmmtrf = z; r.tdmmtrff = z;
 r.tdmltf2 = z; r.tdmltrf2 = z; r.tdmltrf = z; r.tdmltrff = z;
 
+% Errors and times for matrix inversion
+r.nrm_invm  = z; r.nrm_invd  = z; r.nrm_invs  = z;
+r.comp_invm = z; r.comp_invd = z; r.comp_invs = z;
+r.tinvm     = z; r.tinvd     = z; r.tinvs     = z;         
+
 for k = 1:nt
 
     sigma = sigmas(k);
@@ -57,6 +71,13 @@ for k = 1:nt
     r.conds(k) = cond(A);
 
     x_exact = exact_solution(A,v,w,b);
+
+    % Exact inverse
+    Avpa = vpa(A);
+    Avpa(1:n+1:end) = 0;
+    f = w - Avpa*v;
+    Avpa(1:n+1:end) = f ./ v;
+    Ainv_exact = double(Avpa\eye(n));
 
     % GTH with right triplet
     tic; [L,U] = gthlu(A,v,w); x = U\(L\b); r.tgth(k) = toc;
@@ -91,6 +112,31 @@ for k = 1:nt
 
     tic; x = mmex.dmltrff_solve(A,v,w,b); r.tdmltrff(k) = toc;
     r.nrm_dmltrff(k) = norm(x-x_exact)/norm(x_exact);
+
+    % INVERSE COMPARISONS ------------------------------------------------
+    
+    % Method 1: MATLAB's built-in inv
+    tic; Ainv_matlab = inv(A); r.tinvm(k) = toc;
+    r.nrm_invm(k) = norm(Ainv_matlab - Ainv_exact, 'fro') / norm(Ainv_exact, 'fro');
+    r.comp_invm(k) = max(max(abs((Ainv_matlab - Ainv_exact) ./ Ainv_exact)));
+    
+    % Method 2: dmmtri (compute inverse from LU factors)
+    tic; 
+    U = mmex.dmmtrff(A, v, w);  % This gives the upper triangular factor
+    Ainv_dmmtri = dmmtri_mex(U);% Now compute inverse using dmmtri
+    r.tinvd(k) = toc;
+    r.nrm_invd(k) = norm(Ainv_dmmtri - Ainv_exact, 'fro') / norm(Ainv_exact, 'fro');
+    r.comp_invd(k) = max(max(abs((Ainv_dmmtri - Ainv_exact) ./ Ainv_exact)));
+    
+    % Method 3: Using dmmtrff_solve where the right side is eye(n)
+    tic; 
+    Ainv_solve = mmex.dmmtrff_solve(A, v, w, eye(n));
+    r.tinvs(k) = toc;
+    r.nrm_invs(k) = norm(Ainv_solve - Ainv_exact, 'fro') / norm(Ainv_exact, 'fro');
+    r.comp_invs(k) = max(max(abs((Ainv_solve - Ainv_exact) ./ Ainv_exact)));
+
+    % Display progress
+    fprintf('Sigma %d/%d: cond(A) = %.2e\n', k, nt, r.conds(k));
 end
 end
 
@@ -122,7 +168,6 @@ end
 function create_fig(results)
 c = results.c;
 figure('Position',[100 100 1300 500])
-
 subplot(1,2,1)
 loglog(c,results.conds*eps,'c','LineWidth', 2.5,'LineWidth',3,'DisplayName','cond(A)\epsilon')
 hold on
@@ -138,6 +183,7 @@ loglog(c,results.nrm_dmltrf,'+m','LineWidth',1,'MarkerSize',9,'DisplayName','dml
 loglog(c,results.nrm_dmltrff,'*m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrff')
 xlabel('Sigma','FontSize', 12);
 ylabel('Relative error','FontSize', 12);
+title('Linear system: Relative error')
 legend('Location','best','FontSize', 12);
 subplot(1,2,2)
 semilogy(c,results.tlu,'.r','LineWidth',1,'MarkerSize',11,'DisplayName','LU(dgetrf)')
@@ -152,6 +198,37 @@ semilogy(c,results.tdmltrf2,'dm','LineWidth',1,'MarkerSize',9,'DisplayName','dml
 semilogy(c,results.tdmltrf,'+m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrf')
 semilogy(c,results.tdmltrff,'*m','LineWidth',1,'MarkerSize',9,'DisplayName','dmltrff')
 xlabel('Sigma','FontSize', 12);
-ylabel('CPU time (s)','FontSize', 12);
+ylabel('CPU-times(s)','FontSize', 12);
+title('Linear system: CPU-times(s)')
 legend('Location','best','FontSize', 12);
+end
+
+function create_inverse_fig(results)
+% Create separate figure for inverse comparison
+figure('Position',[100 100 1300 500])
+subplot(1,2,1)
+c = results.c;
+loglog(c, results.conds*eps, 'k--', 'LineWidth', 2, 'DisplayName', 'cond(A)\epsilon')
+hold on
+loglog(c,results.nrm_invm,'c-o','LineWidth',2,'DisplayName','MATLAB inv (norm)')
+loglog(c,results.nrm_invd,'b-s','LineWidth',2,'DisplayName','dmmtri (norm)')
+loglog(c,results.nrm_invs,'m-^','LineWidth',2,'DisplayName','dmmtrf\_solve with I (norm)')
+loglog(c,results.comp_invm,'c--o','LineWidth',1.5,'DisplayName','MATLAB inv (comp)')
+loglog(c,results.comp_invd,'b--s','LineWidth',1.5,'DisplayName','dmmtri (comp)')
+loglog(c, results.comp_invs, 'm--^','LineWidth',1.5,'DisplayName','dmmtrf\_solve with I (comp)')
+xlabel('Sigma')
+ylabel('Relative error')
+title('Matrix inversion: MATLAB inv vs dmmtri vs dmmtrf\_solve')
+legend('Location', 'best')
+hold off
+subplot(1,2,2)
+semilogy(c,results.tinvm,'co','LineWidth',3,'MarkerSize',9,'DisplayName','MATLAB inv')
+hold on
+semilogy(c,results.tinvd,'bs','LineWidth',3,'MarkerSize',9,'DisplayName','dmmtri')
+semilogy(c,results.tinvs,'m^','LineWidth',3,'MarkerSize',9,'DisplayName','dmmtrf\_solve')
+xlabel('Sigma')
+ylabel('CPU-times(s)')
+title('Matrix inversion: CPU-times(s)')
+legend('Location', 'best')
+hold off
 end
