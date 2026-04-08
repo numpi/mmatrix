@@ -113,7 +113,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             if nargin < 2
                 f = 40;
             end
-            n=obj.n;
+            n = obj.n;
             M = vpa(obj.M, f);
             u = vpa(obj.u, f);
             v = vpa(obj.v, f);
