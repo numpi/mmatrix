@@ -211,9 +211,12 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             end
         end
         %------------------------------------------------------------------
-        function d = det(obj)
+        function X = det(obj)
+        % Determinant of a triplet M-matrix
+        % X = det(obj) returns det(M) computed from the GTH algorithm
+        % Since L is unit lower triangular, det(M) = prod(diag(U)).
             [~, U] = lu(obj);
-            d = prod(diag(U));
+            X = prod(diag(U));
         end
         %------------------------------------------------------------------
         function [lambda, u, iter] = eigmin(obj, tol, maxit)
@@ -252,7 +255,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
 
                 lambda_new = lambda + theta;
 
-                u_new = w / norm(w,1);
+                u_new = w / norm(w, inf);
                 v_new = u_new .* (ratios - theta);
 
                 if (max(ratios) - min(ratios)) / lambda_new <= tol
