@@ -216,8 +216,59 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             d = prod(diag(U));
         end
         %------------------------------------------------------------------
-        function v = perron(M)
-            % Not defined
+        function [lambda, u, iter] = eigmin(obj, tol, maxit)
+        % Smallest eigenvalue of a triplet M-matrix
+
+        % Inputs:
+        % obj   : mmatrix object (triplet M-matrix)
+        % tol   : convergence tolerance (default 100*eps)
+        % maxit : maximum number of iterations (default 100)
+
+        % Outputs:
+        % lambda : approximation of smallest eigenvalue
+        % u      : corresponding eigenvector  
+        % iter   : number of iterations performed
+
+            if nargin < 2 || isempty(tol)
+                tol = 100*eps;
+            end
+            if nargin < 3
+                maxit = 100;
+            end
+            u_s = obj.u;
+            lambda = min(obj.v ./ obj.u);
+            v_s = obj.v - lambda * obj.u;
+
+            for iter = 1:maxit
+
+                if obj.left
+                    w = mmex.dmltrff_lsolve(obj.M, u_s, v_s, u_s);
+                else
+                    w = mmex.dmmtrff_solve(obj.M, u_s, v_s, u_s);
+                end
+
+                ratios = u_s ./ w;
+                theta = min(ratios);
+
+                lambda_new = lambda + theta;
+
+                u_new = w / norm(w,1);
+                v_new = u_new .* (ratios - theta);
+
+                if (max(ratios) - min(ratios)) / lambda_new <= tol
+                    lambda = lambda_new;
+                    u = u_new;
+                    break;
+                end
+
+                lambda = lambda_new;
+                u_s = u_new;
+                v_s = v_new;
+            end
+
+            if iter == maxit
+                warning('mmatrix:eigmin', 'Max iterations reached');
+            end
         end
         %------------------------------------------------------------------
         function B = sqrtm(M)
