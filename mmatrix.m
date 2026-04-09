@@ -219,7 +219,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             X = prod(diag(U));
         end
         %------------------------------------------------------------------
-        function [lambda, u, iter] = eigmin(obj, tol, maxit)
+        function [lambda, u, iter, info] = eigmin(obj, tol, maxit)
         % Smallest eigenvalue of a triplet M-matrix
 
         % Inputs:
@@ -231,6 +231,12 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         % lambda : approximation of smallest eigenvalue
         % u      : corresponding eigenvector  
         % iter   : number of iterations performed
+        % info   : structure with error analysis
+        
+        % This code implements Algorithm 2 from:
+        % A. S. Alfa, J. Xue, and Q. Ye, "Accurate Computation of the
+        % Smallest Eigenvalue of a Diagonally Dominant M-Matrix,"
+        % Mathematics of Computation, Vol. 71, No. 237, pp. 217–236, 2001.
 
             if nargin < 2 || isempty(tol)
                 tol = 100*eps;
@@ -272,6 +278,20 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             if iter == maxit
                 warning('mmatrix:eigmin', 'Max iterations reached');
             end
+            
+            % Error analysis
+            eps_machine = eps;
+            phi = (2*(obj.n+2)*(obj.n+3)*(2*obj.n+5))/3;
+            varphi = 12*obj.n*(phi + 3); 
+            psi = 12*(iter+1)*obj.n*varphi + 2*phi + 36*(iter+1)*obj.n + 4; 
+
+            info.tol = tol;
+            info.phi = phi;
+            info.varphi = varphi;
+            info.psi = psi;
+
+            % error bound
+            info.bound = tol + psi * eps_machine;
         end
         %------------------------------------------------------------------
         function B = sqrtm(M)
