@@ -294,7 +294,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             info.bound = tol + psi * eps_machine;
         end
         %------------------------------------------------------------------
-            function [B, out] = sqrtm(M, opts)
+        function [B, out] = sqrtm(M, opts)
             % Computes M^{1/2}, the square root of the M-matrix M
             % B = sqrtm(M) 
             % [B, out] = sqrtm(M)
@@ -392,9 +392,16 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             C = double(A) .* double(B);
         end
         function C = mtimes(A, B)
-            warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
-            C = double(A) * double(B);
+            if size(A, 1) == 1 && size(A, 2) == 1 && A(1, 1)>0
+                C = mmatrix(A*B.M, B.u, A*B.v);
+            elseif size(B, 1) == 1 && size(B, 2) == 1 && B(1, 1)>0
+                C = mmatrix(A.M*B, A.u, A.v*B);
+            else
+                warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
+                C = double(A) * double(B);
+            end
         end
+
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end
