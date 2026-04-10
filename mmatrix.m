@@ -388,20 +388,25 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             C = double(A) - double(B);
         end
         function C = times(A, B)
-            warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
-            C = double(A) .* double(B);
+            if size(A, 1) == 1 && size(A, 2) == 1 && A(1, 1) > 0
+                C = mmatrix(A*B.M, B.u, A*B.v);
+            elseif size(B, 1) == 1 && size(B, 2) == 1 && B(1, 1) > 0
+                C = mmatrix(A.M*B, A.u, A.v*B);
+            else
+                warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
+                C = double(A) .* double(B);
+            end
         end
         function C = mtimes(A, B)
-            if size(A, 1) == 1 && size(A, 2) == 1 && A(1, 1)>0
+            if size(A, 1) == 1 && size(A, 2) == 1 && A(1, 1) > 0
                 C = mmatrix(A*B.M, B.u, A*B.v);
-            elseif size(B, 1) == 1 && size(B, 2) == 1 && B(1, 1)>0
+            elseif size(B, 1) == 1 && size(B, 2) == 1 && B(1, 1) > 0
                 C = mmatrix(A.M*B, A.u, A.v*B);
             else
                 warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
                 C = double(A) * double(B);
             end
         end
-
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end
