@@ -294,9 +294,59 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             info.bound = tol + psi * eps_machine;
         end
         %------------------------------------------------------------------
-        function B = sqrtm(M)
-            % Not defined
+            function [B, out] = sqrtm(M, opts)
+            % Computes M^{1/2}, the square root of the M-matrix M
+            % B = sqrtm(M) 
+            % [B, out] = sqrtm(M)
+            % B = sqrtm(M, g = 4, maxit = 20, tol = 1d-20)
+            % 
+            % M: triplet M-matrix
+            % opts.gamma: cancellation reducing parameters (default = 4)
+            % opts.maxit: maximum number of iterations (default = 20)
+            % opts.tol: tolerance in the stopping criterion (default = 1d-20)
+            % B: the square root
+            % out: output structure, contains
+            %      out.it: number of iterations
+            %
+            % The algorithm is Newton's method written in Cyclic Reduction
+            % form and with an iteration on the triplet, from
+            %
+            % D. A. Bini, B. Iannazzo, B. Meini, J. Meng, "Componentwise
+            % accurate computation of the square root of an M-matrix",
+            % manuscript, 2026.
+            %
+            % Warning: the algorithm makes a subtraction in the first step,
+            % the parameter gamma reduces the cancellation to subtraction 
+            % of the type (gamma - a) with a<=1, an high value of gamma
+            % slows down the convergence.
+
+            arguments
+                M
+                opts.gamma = 4
+                opts.maxit = 20
+                opts.tol = 1d-20
+            end
+            gamma = opts.gamma;
+
+            n = M.n;
+            gamma = gamma * max(diag(M));
+            M = 1/gamma * M;
+            W = M.M - eye(n); % not componentwise accurate
+            Z = (1/2) * (eye(n) + M);
+            p = M.v;
+            for ell = 1:opts.maxit
+                [L, U] = lumatlab(Z);
+                p = p - 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
+                W = - 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
+                Z = mmatrix(Z.M + 1/2 * W, M.u, p - 1/2 * W * M.u);
+                if norm(W) < opts.tol
+                   break;
+                end
+            end
+            out.it = ell;
+            B = sqrt(gamma) * Z;
         end
+
     end
 
     %----------------------------------------------------------------------
