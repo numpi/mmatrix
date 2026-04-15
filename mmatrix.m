@@ -219,6 +219,35 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             X = prod(diag(U));
         end
         %------------------------------------------------------------------
+        function [U, S, V] = svd(obj)
+            % [U, S, V] = svd(M)
+            % Computes SVD of an M-matrix
+
+            % This code implements Algorithm 1 from:
+            % J. Demmel and P. Koev,
+            % "Accurate SVDs of weakly diagonally dominant M-matrices,"
+            % Numerische Mathematik, 98:99–104, 2004.
+            % to obtain LDU factorization and Algorithm 3.1 from:
+            % J. Demmel, et al. "Computing the singular value decomposition
+            % with high relative accuracy," Linear Algebra and its
+            % Applications, 299 (1999), 21–80.
+
+            A_off = obj.M;
+            A_off(1:obj.n+1:end) = 0;
+            s = zeros(obj.n,1);
+            for i = 1:obj.n
+                s(i) = obj.M(i,i);
+                for j = 1:obj.n
+                    if j ~= i
+                        s(i) = s(i) + obj.M(i,j);
+                    end
+                end
+            end
+            [U, sigma, V] = dmmsvd(A_off, s);
+            S = diag(sigma);
+        end
+        %------------------------------------------------------------------
+        %------------------------------------------------------------------
         function [lambda, u, iter, info] = eigmin(obj, tol, maxit)
         % Smallest eigenvalue of a triplet M-matrix
 
