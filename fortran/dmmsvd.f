@@ -12,7 +12,7 @@ C
 C        G = L * D * U
 C
 C  where:
-C     L - unit lower triangular matrix
+C     L - lower triangular matrix
 C     D - diagonal matrix
 C     U - upper triangular matrix
 C
@@ -46,7 +46,7 @@ C-----------------------------------------------------------------------
       DOUBLE PRECISION   R(N,N), W(N,N), UP(N,N)
       DOUBLE PRECISION   TAU(N)
 
-      EXTERNAL           DGEQP3, DORGQR, DGEMM, DGESVJ, DSWAP
+      EXTERNAL           DGEQP3, DORGQR, DGEMM, DGESVJ, DSWAP, DSCAL
 
       INFO = 0
 C-----------------------------------------------------------------------
@@ -66,23 +66,15 @@ C-----------------------------------------------------------------------
 C-----------------------------------------------------------------------
 C Compute XD = (P^T L) * D   
 C-----------------------------------------------------------------------
+        CALL DGEMM('T','N',
+     &       N, N, N,
+     &       1.0D0,
+     &       Q, N,
+     &       L, N,
+     &       0.0D0,
+     &       XD, N)
       DO J = 1, N
-         DO I = 1, N
-            XD(I,J) = 0.0D0
-         END DO
-      END DO
-C---------compute Q^T * L----------------------------------------------- 
-      DO J = 1, N
-         DO K = 1, N
-            DO I = 1, N
-               XD(I,J) = XD(I,J) + Q(K,I) * L(K,J)
-            END DO
-         END DO
-      END DO
-      DO J = 1, N
-         DO I = 1, N
-            XD(I,J) = XD(I,J) * D(J)
-         END DO
+         CALL DSCAL(N, D(J), XD(1,J), 1)
       END DO
 C-----------------------------------------------------------------------
 C QR with pivoting
