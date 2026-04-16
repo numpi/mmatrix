@@ -1,8 +1,10 @@
       SUBROUTINE DMMSVD( N, L, LDL, D, U, LDU,
      &                   S, UMAT, LDUF, VMAT, LDVF,
-     &                   WORK, LWORK, IWORK, INFO )
+     &                   WORK, LWORK, IWORK,
+     &                   PIV,
+     &                   INFO )
 C-----------------------------------------------------------------------
-C  DMMSVD: SVD from double-precision matrix 
+C  DMMSVD: SVD for a double-precision matrix 
 C
 C  This subroutine computes the Singular Value Decomposition (SVD)
 C  of a matrix G given in the form:
@@ -27,60 +29,82 @@ C     2. Compute W = R * (P^T * U)
 C     3. Compute SVD of W using one-sided Jacobi (DGESVJ): W = U_w * Σ * V^T
 C     4. Compute U = Q * U_w
 C-----------------------------------------------------------------------
-
       IMPLICIT NONE
 
       INTEGER            N, LDL, LDU, LDUF, LDVF, LWORK, INFO
       INTEGER            IWORK(*)
+      INTEGER            PIV(*)
 
       DOUBLE PRECISION   L(LDL,*), D(*), U(LDU,*)
       DOUBLE PRECISION   UMAT(LDUF,*), VMAT(LDVF,*), S(*)
       DOUBLE PRECISION   WORK(*)
 
-      INTEGER            I, J, INFO2
+      INTEGER            I, J, K, INFO2
       INTEGER            JPIV(N)
 
       DOUBLE PRECISION   XD(N,N), Q(N,N)
-      DOUBLE PRECISION   R(N,N), W(N,N)
-      DOUBLE PRECISION   UP(N,N)
+      DOUBLE PRECISION   R(N,N), W(N,N), UP(N,N)
       DOUBLE PRECISION   TAU(N)
 
-      EXTERNAL           DGEQP3, DORGQR, DGEMM, DGESVJ
+      EXTERNAL           DGEQP3, DORGQR, DGEMM, DGESVJ, DSWAP
 
       INFO = 0
 C-----------------------------------------------------------------------
-C Compute XD = L * D
+C Build permutation matrix from  PIV
 C-----------------------------------------------------------------------
       DO J = 1, N
          DO I = 1, N
-            XD(I,J) = L(I,J) * D(J)
+            Q(I,J) = 0.0D0
+         END DO
+         Q(J,J) = 1.0D0
+      END DO
+      DO K = N, 1, -1
+         IF (PIV(K) .NE. K) THEN
+            CALL DSWAP(N, Q(1,K), 1, Q(1,PIV(K)), 1)
+         END IF
+      END DO
+C-----------------------------------------------------------------------
+C Compute XD = (P^T L) * D   
+C-----------------------------------------------------------------------
+      DO J = 1, N
+         DO I = 1, N
+            XD(I,J) = 0.0D0
+         END DO
+      END DO
+C---------compute Q^T * L----------------------------------------------- 
+      DO J = 1, N
+         DO K = 1, N
+            DO I = 1, N
+               XD(I,J) = XD(I,J) + Q(K,I) * L(K,J)
+            END DO
+         END DO
+      END DO
+      DO J = 1, N
+         DO I = 1, N
+            XD(I,J) = XD(I,J) * D(J)
          END DO
       END DO
 C-----------------------------------------------------------------------
-C QR factorization with pivoting
+C QR with pivoting
 C-----------------------------------------------------------------------
-      CALL DGEQP3( N, N, XD, N, JPIV, TAU,
-     &             WORK, LWORK, INFO2 )
-      IF ( INFO2 .NE. 0 ) THEN
+      CALL DGEQP3(N, N, XD, N, JPIV, TAU,
+     &            WORK, LWORK, INFO2)
+      IF (INFO2 .NE. 0) THEN
          INFO = 1
          RETURN
       END IF
-C-----------------------------------------------------------------------
-C Form explicit Q
-C-----------------------------------------------------------------------
+C--------- Form Q explicitly--------------------------------------------
       Q = XD
-      CALL DORGQR( N, N, N, Q, N, TAU,
-     &             WORK, LWORK, INFO2 )
-      IF ( INFO2 .NE. 0 ) THEN
+      CALL DORGQR(N, N, N, Q, N, TAU,
+     &            WORK, LWORK, INFO2)
+
+      IF (INFO2 .NE. 0) THEN
          INFO = 2
          RETURN
       END IF
-C-----------------------------------------------------------------------
-C Extract R from the QR factorization
-C R is the upper triangular part of XD after DGEQP3.
-C-----------------------------------------------------------------------
-      DO J = 1, N
-         DO I = 1, N
+C--------- Extract R----------------------------------------------------
+      DO I = 1, N
+         DO J = 1, N
             R(I,J) = 0.0D0
          END DO
       END DO
@@ -90,14 +114,13 @@ C-----------------------------------------------------------------------
          END DO
       END DO
 C-----------------------------------------------------------------------
-C Apply permutation and form W:  W = R * (P^T * U)
+C Apply QR permutation
 C-----------------------------------------------------------------------
       DO J = 1, N
          DO I = 1, N
             UP(I,J) = U(I, JPIV(J))
          END DO
       END DO
-
       CALL DGEMM('N','N',
      &           N, N, N,
      &           1.0D0,
@@ -106,21 +129,21 @@ C-----------------------------------------------------------------------
      &           0.0D0,
      &           W, N)
 C-----------------------------------------------------------------------
-C Compute SVD of W. This corresponds to W = U_w * Σ * V^T
+C  SVD OF W
 C-----------------------------------------------------------------------
-      CALL DGESVJ( 'G', 'U', 'V',
-     &             N, N, W, N,
-     &             S,
-     &             N,
-     &             VMAT, LDVF,
-     &             WORK, LWORK,
-     &             INFO2 )
-      IF ( INFO2 .NE. 0 ) THEN
+      CALL DGESVJ('G','U','V',
+     &            N, N, W, N,
+     &            S,
+     &            N,
+     &            VMAT, LDVF,
+     &            WORK, LWORK,
+     &            INFO2)
+      IF (INFO2 .NE. 0) THEN
          INFO = 3
          RETURN
       END IF
 C-----------------------------------------------------------------------
-C Compute U = Q * U_w
+C Compute U = Q * Uw
 C-----------------------------------------------------------------------
       CALL DGEMM('N','N',
      &           N, N, N,
