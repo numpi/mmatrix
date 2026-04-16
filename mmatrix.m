@@ -188,7 +188,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             else
                 Mf = mmex.dmmtrff(obj.M, obj.u, obj.v);
             end
-            X = dmmtri(Mf);
+            X = dmmtri_mex(Mf);
         end
         %------------------------------------------------------------------
         function X = mrdivide(B, obj)
@@ -243,7 +243,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                     end
                 end
             end
-            [U, sigma, V] = dmmsvd(A_off, s);
+            [U, sigma, V] = dmmsvd_mex(A_off, s);
             S = diag(sigma);
         end
         %------------------------------------------------------------------
