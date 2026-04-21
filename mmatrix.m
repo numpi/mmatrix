@@ -144,7 +144,51 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             U = triu(U);
         end
         %------------------------------------------------------------------
+               %------------------------------------------------------------------
         function [L, U] = lumatlab(obj)
+            % [L, U] = lumatlab(M)
+            % Forms the LU factorization of M using pure MATLAB
+            % M: triplet mmatrix
+            % L, U: factors
+                        
+            n = obj.n;
+            if obj.left
+                L = eye(n); 
+                U = obj.M;
+                u = obj.u;
+                v = obj.v;
+
+                for j = 1:n-1
+                    pivot = (v(1, j) - u(1, j+1:n) * U(j+1:n, j)) / u(1, j);
+                    U(j, j) = pivot;
+                    L(j+1:n, j) = U(j+1:n, j) / pivot;
+                    U(j+1:n, j) = 0;
+                    v(1, j+1:n) = v(1, j+1:n) - v(1, j)/pivot * U(j, j+1:n);
+                    U(j+1:n, j+1:n) = U(j+1:n, j+1:n) - ...
+                                      L(j+1:n, j) * U(j, j+1:n);
+                end
+                U(n, n) = v(1, n) / u(1, n);
+            else
+                L = eye(n);
+                U = obj.M;
+                u = obj.u;
+                v = obj.v;
+                for j = 1:n-1
+                    pivot = (v(j) - U(j, j+1:n) * u(j+1:n)) / u(j);
+                    U(j, j) = pivot;
+                    L(j+1:n, j) = U(j+1:n, j) / pivot;
+                    U(j+1:n, j) = 0;
+                    v(j+1:n) = v(j+1:n) - L(j+1:n, j) * v(j);
+                    U(j+1:n, j+1:n) = U(j+1:n, j+1:n) - ...
+                                      L(j+1:n, j) * U(j, j+1:n); 
+                    % will write inaccurate values on the diagonal, 
+                    % but we don't care since we'll never use them
+                end
+                U(n, n) = v(n) / u(n);
+            end
+        end
+        %------------------------------------------------------------------
+        function [L, U] = lumatlabold(obj)
             % [L, U] = lu(M)
             % Forms the LU factorization of M
             % M: triplet mmatrix
