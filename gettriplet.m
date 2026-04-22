@@ -64,4 +64,6 @@ switch m
         v = [zeros(floor(n/4),1); (1:n-floor(n/4))'];
         M = mmatrix(M, u, v);
 
+    otherwise
+        error('Wrong example specification in gettriplet');
 end
