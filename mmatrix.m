@@ -399,6 +399,11 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 opts.maxit = 20
                 opts.tol = 1d-20
             end
+
+            if M.left
+                error('Unimplemented');
+            end
+
             gamma = opts.gamma;
 
             n = M.n;
@@ -456,25 +461,28 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 C = double(A) + double(B);
             end
         end
+
         function C = minus(A, B)
             warning('mmatrix:inaccurate', 'converted to double for the subtraction, results may not be componentwise accurate')
             C = double(A) - double(B);
         end
+
         function C = times(A, B)
             if isscalar(A) && A > 0
-                C = mmatrix(A*B.M, B.u, A*B.v);
+                C = mmatrix(A*B.M, B.u, A*B.v, left=B.left);
             elseif isscalar(B) && B > 0
-                C = mmatrix(A.M*B, A.u, A.v*B);
+                C = mmatrix(A.M*B, A.u, A.v*B, left=A.left);
             else
                 warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
                 C = double(A) .* double(B);
             end
         end
+
         function C = mtimes(A, B)
             if isscalar(A)  && A > 0
-                C = mmatrix(A*B.M, B.u, A*B.v);
+                C = mmatrix(A*B.M, B.u, A*B.v, left=B.left);
             elseif isscalar(B) && B > 0
-                C = mmatrix(A.M*B, A.u, A.v*B);
+                C = mmatrix(A.M*B, A.u, A.v*B, left=A.left);
             else
                 warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
                 C = double(A) * double(B);

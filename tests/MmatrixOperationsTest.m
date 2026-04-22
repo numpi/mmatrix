@@ -81,7 +81,7 @@ function testSum(testCase)
             testCase.verifyClass(C, 'double');
             testCase.verifyEqual(C, double(A) + double(B), RelTol=1e-9);
         warning(state);
-    
+
         % modify B so that it has uB==uA
         BM = BM .* transpose((uB./u));
         if left
