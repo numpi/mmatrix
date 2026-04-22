@@ -154,3 +154,8 @@ function testLU(testCase)
         testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
     end
 end
+
+function testDiag(testCase)
+    M = gettriplet('rand', seed=0);
+    testCase.verifyEqual(diag(double(M)), diag(M));
+end

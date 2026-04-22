@@ -5,7 +5,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
 
     % Properties of the class
     properties (SetAccess = public)
-        M (:, :)   % an M-matrix M
+        M (:, :)  % an M-matrix M. The diagonal is recomputed, and assumed to be accurate after construction.
         u (:, :) {mustBePositive} % positive vector	 
         v (:, :) {mustBeNonnegative} % nonnegative vector  
         left (1,1) logical
@@ -483,7 +483,9 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end
-
+        function d = diag(obj)
+            d = transpose(obj.M(1:obj.n+1:end));
+        end
     end
 
     % the following methods are required from matlab.mixin.indexing.RedefinesParen
