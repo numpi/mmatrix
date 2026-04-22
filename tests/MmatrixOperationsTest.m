@@ -141,6 +141,39 @@ function testIndexing(testCase)
     end
 end
 
+function testTimes(testCase)
+    for left = [true, false]
+        n = 5;
+        A = gettriplet('rand', size=n, seed=0, left=left);
+        alpha = 4.5;
+        v = rand(n, 1);
+        testCase.verifyEqual(double(A .* alpha), double(A) .* alpha, RelTol=1e-9);
+        testCase.verifyClass(A .* alpha, 'mmatrix');
+        testCase.verifyEqual(double(alpha .* A), alpha .* double(A), RelTol=1e-9);
+        testCase.verifyClass(alpha .* A, 'mmatrix');
+        testCase.verifyEqual(double(A .* v), double(A) .* v, RelTol=1e-9);
+        testCase.verifyClass(A .* v, 'mmatrix');
+        testCase.verifyEqual(double(v .* A), v .* double(A), RelTol=1e-9);
+        testCase.verifyClass(v .* A, 'mmatrix');
+        testCase.verifyEqual(double(A .* v'), double(A) .* v', RelTol=1e-9);
+        testCase.verifyClass(A .* v', 'mmatrix');
+        testCase.verifyEqual(double(v' .* A), v' .* double(A), RelTol=1e-9);
+        testCase.verifyClass(v' .* A, 'mmatrix');
+
+        % some cases that throw warnings...
+        testCase.verifyWarning(@() (-alpha) .* A, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() (-v) .* A, 'mmatrix:inaccurate');
+        testCase.verifyWarning(@() (-v') .* A, 'mmatrix:inaccurate');
+        % ...and return double
+        state = warning;
+        warning('off', 'mmatrix:inaccurate');
+        testCase.verifyClass((-alpha) .* A, 'double');
+        testCase.verifyClass((-v) .* A, 'double');
+        testCase.verifyClass((-v') .* A, 'double');
+        warning(state);
+    end
+end
+
 function testLU(testCase)
     for left = [true, false]
         rng(0);

@@ -468,10 +468,28 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         end
 
         function C = times(A, B)
-            if isscalar(A) && A > 0
+            if isnumeric(A) && isscalar(A) && A > 0 % scalar * M
                 C = mmatrix(A*B.M, B.u, A*B.v, left=B.left);
-            elseif isscalar(B) && B > 0
+            elseif isnumeric(B) && isscalar(B) && B > 0 % M * scalar
                 C = mmatrix(A.M*B, A.u, A.v*B, left=A.left);
+            elseif isnumeric(A) && isequal(size(A), [B.n, 1]) && all(A>0) % column * M
+                % this is equivalent to diag(column) * M
+                if B.left
+                    C = mmatrix(A .* B.M, B.u ./ transpose(A), B.v, left=true);
+                else
+                    C = mmatrix(A .* B.M, B.u, A .* B.v, left=false);
+                end
+            elseif isnumeric(B) && isequal(size(B), [A.n, 1]) && all(B>0) % M * column
+                C = times(B, A); % .* is commutative
+            elseif isnumeric(A) && isequal(size(A), [1, B.n]) && all(A>0) % row * M
+                % this is equivalent to M * diag(row)
+                if B.left
+                    C = mmatrix(A .* B.M, B.u, A .* B.v, left=true);
+                else
+                    C = mmatrix(A .* B.M, B.u ./ transpose(A), B.v, left=false);
+                end
+            elseif isnumeric(B) && isequal(size(B), [1, A.n]) && all(B>0) % M * row
+                C = times(B, A); % .* is commutative
             else
                 warning('mmatrix:inaccurate', 'converted to double for the product, results may not be componentwise accurate')
                 C = double(A) .* double(B);
