@@ -42,7 +42,7 @@ switch m
         end
         sigma = opts.sigma;
         h = opts.h;
-        M = full(gallery('tridiag', n, -1, 2, -1));
+        M = full(gallery('tridiag', n));
         M(1, 1) = 1 + h * sigma;
         M(n, n) = 1 + h * sigma;
         u = ones(n, 1);
