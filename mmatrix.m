@@ -506,6 +506,12 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 C = double(A) * double(B);
             end
         end
+        function MT = transpose(M)
+            MT = mmatrix(M.M', M.u', M.v', left=not(M.left));
+        end
+        function MT = ctranspose(M)
+            MT = transpose(M);
+        end
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end

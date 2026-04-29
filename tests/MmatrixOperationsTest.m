@@ -188,6 +188,14 @@ function testLU(testCase)
     end
 end
 
+function testTranspose(testCase)
+    for left = [true, false]
+        M = gettriplet('rand', seed=0, left=left);
+        testCase.verifyEqual(double(transpose(M)), transpose(double(M)), RelTol=1e-9);
+        testCase.verifyEqual(double(M'), (double(M))', RelTol=1e-9);
+    end
+end
+
 function testDiag(testCase)
     M = gettriplet('rand', seed=0);
     testCase.verifyEqual(diag(double(M)), diag(M));
