@@ -515,6 +515,14 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         function MT = ctranspose(M)
             MT = transpose(M);
         end
+        function P = mpower(X, Y)
+            if isequal(Y, 1/2)
+                P = sqrtm(X);
+            else
+                warning('mmatrix:inaccurate', 'converted to double for the matrixpower, results may not be componentwise accurate')
+                P = double(X)^double(Y);
+            end
+        end
         function x = norm(A, varargin)
             x = norm(double(A), varargin{:});
         end
