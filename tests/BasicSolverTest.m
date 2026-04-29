@@ -11,7 +11,8 @@ end
 function testGthLU(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
+    M = gettriplet('rand', size=n);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan; % sets diagonal to NaN to make sure we are not cheating
     [L, U, ww] = gthlu(A0, v, w);
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
@@ -20,7 +21,8 @@ function testGthLU(testCase)
     testCase.verifyEqual(U, triu(U));    
     testCase.verifyEqual(ww, L \ w);    
 
-    [A, v, w] = randtriplet(n, left=true);
+    M = gettriplet('rand', size=n, left=true);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = 0;
     [L, U, ww] = gthlu(A0, v, w, 'left');
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
@@ -31,7 +33,8 @@ end
 function testRightTripletSolvers(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n);
+    M = gettriplet('rand', size=n);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan;
     solvers = { "dmmtf2", "dmmtrf2", "dmmtrf", "dmmtrff" };
     for k = 1:length(solvers)
@@ -76,7 +79,8 @@ end
 function testLeftTripletSolvers(testCase)
     rng(0);
     n = 4;
-    [A, v, w] = randtriplet(n, left=true);
+    M = gettriplet('rand', size=n, left=true);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan;
     solvers = {"dmltf2", "dmltrf2", "dmltrf", "dmltrff"};
     for k = 1:length(solvers)
@@ -121,7 +125,8 @@ end
 function testTraditionalSolvers(testCase)
     rng(0);
     n = 4;
-    [A, ~, ~] = randtriplet(n);
+    M = gettriplet('rand', size=n, seed=0);
+    A = M.M; % v = M.u; w = M.v;
     solvers = {"dgetf2", "dgetrf2", "dgetrf", "dgetf2_reference", "dgetrf2_reference", "dgetrf_reference"};
     for k = 1:length(solvers)
         solver = str2func("mmex."+solvers{k});
@@ -153,7 +158,8 @@ end
 function testRightTripletSolversWithBlockSizes(testCase)
     rng(0);
     n = 6;
-    [A, v, w] = randtriplet(n);
+    M = gettriplet('rand', size=n);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan;
     b = rand(n, 3);
     solvers = {"dmmtrf", "dmmtrff" };
@@ -179,7 +185,8 @@ end
 function testLeftTripletSolversWithBlockSizes(testCase)
     rng(0);
     n = 6;
-    [A, v, w] = randtriplet(n, left=true);
+    M = gettriplet('rand', size=n, left=true);
+    A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan;
     b = rand(n, 3);
     solvers = {"dmltrf", "dmltrff"};

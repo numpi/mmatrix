@@ -12,21 +12,30 @@ function testCreation(testCase)
     for left = [true, false]
         rng(0);
         n = 7;
-        [AM, u, v] = randtriplet(n, left=left);
+        AM = -rand(n, n);
+        u = rand(n, 1);
+        v = rand(n, 1);
+        if left
+            u = u'; v = v';
+        end
         A = mmatrix(AM, u, v, left=left);
-        testCase.verifyEqual(AM, double(A), RelTol=1e-9);
+        if left
+            testCase.verifyEqual(u*double(A), v, RelTol=1e-9);
+        else
+            testCase.verifyEqual(double(A)*u, v, RelTol=1e-9);
+        end
 
         % test constructing without v
-        testCase.verifyWarning(@() mmatrix(AM, u, left=left), 'mmatrix:inaccurate');
-        DM = diag(diag(AM));
+        testCase.verifyWarning(@() mmatrix(double(A), u, left=left), 'mmatrix:inaccurate');
+        DM = diag(diag(A));
         testCase.verifyWarningFree(@() mmatrix(DM, u, left=left), 'mmatrix:inaccurate');
         D = mmatrix(DM, u, left=left);
         testCase.verifyEqual(DM, double(D), RelTol=1e-9);
 
         state = warning;
         warning('off', 'mmatrix:inaccurate');
-            A = mmatrix(AM, u, left=left);
-            testCase.verifyEqual(AM, double(A), RelTol=1e-9);
+            AA = mmatrix(double(A), u, left=left);
+            testCase.verifyEqual(double(A), double(AA), RelTol=1e-9);
         warning(state);
     end
 end
@@ -35,13 +44,13 @@ function testWarnings(testCase)
     for left = [true, false]
         rng(0);
         n = 5;
-        [AM, u, v] = randtriplet(n, left=left);
-        A = mmatrix(AM, u, v, left=left);
-        [BM, uB, vB] = randtriplet(n, left=left);
-        B = mmatrix(BM, uB, vB, left=false);
-        C = mmatrix(BM, uB, vB, left=true);
+        A = gettriplet('rand', size=n, left=left, seed=1);
+        B = gettriplet('rand', size=n, left=false, seed=2);
+        C = gettriplet('rand', size=n, left=true, seed=3);
 
         D = rand(n);
+        state = warning;
+        warning('on', 'mmatrix:inaccurate');
         % mmatrix op double
         testCase.verifyWarning(@() A+D, 'mmatrix:inaccurate');
         testCase.verifyWarning(@() A-D, 'mmatrix:inaccurate');
@@ -61,6 +70,7 @@ function testWarnings(testCase)
         D(1:2,1) = [1 -1];
         testCase.verifyWarning(@() A \ D, 'mmatrix:inaccurate');
         testCase.verifyWarning(@() D / A, 'mmatrix:inaccurate');
+        warning(state);
     end
 end
 
