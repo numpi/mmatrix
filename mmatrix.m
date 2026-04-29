@@ -401,7 +401,10 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             end
 
             if M.left
-                error('Unimplemented');
+                nv = namedargs2cell(opts);
+                [B, out] = sqrtm(M', nv{:});
+                B = B';
+                return
             end
 
             gamma = opts.gamma;
