@@ -19,7 +19,10 @@ arguments
 end
 
 if M.left
-    error('still to implement by transposing');
+    nv = namedargs2cell(opts);
+    [XT, YT] = sda(M', n1, nv{:});
+    [X, Y] = deal(YT', XT');
+    return
 end
 
 n = size(M, 1);
