@@ -130,9 +130,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
             piv,
             &info);
 
-    if (info != 0)
-        mexErrMsgTxt("DMMSVD failed");
-
 /* CLEANUP */
 
     mxFree(L);
