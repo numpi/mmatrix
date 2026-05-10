@@ -45,10 +45,32 @@ C-----------------------------------------------------------------------
       DOUBLE PRECISION   XD(N,N), Q(N,N)
       DOUBLE PRECISION   R(N,N), W(N,N), UP(N,N)
       DOUBLE PRECISION   TAU(N)
+      DOUBLE PRECISION   OPTWORK
 
       EXTERNAL           DGEQP3, DORGQR, DGEMM, DGESVJ, DSWAP, DSCAL
 
       INFO = 0
+
+      IF (LWORK .EQ. -1) THEN
+         OPTWORK = 0.0D0
+
+         DO I = 1, N
+            JPIV(I) = 0
+         END DO
+
+         CALL DGEQP3(N, N, XD, N, JPIV, TAU, WORK, -1, INFO2)
+         OPTWORK = MAX(OPTWORK, WORK(1))
+
+         CALL DORGQR(N, N, N, Q, N, TAU, WORK, -1, INFO2)
+         OPTWORK = MAX(OPTWORK, WORK(1))
+
+         CALL DGESVJ('G','U','V', N, N, W, N, S, N, VMAT, LDVF, 
+     &               WORK, -1, INFO2)
+         OPTWORK = MAX(OPTWORK, WORK(1))
+
+         WORK(1) = OPTWORK
+         RETURN
+      END IF      
 C-----------------------------------------------------------------------
 C Build permutation matrix from  PIV
 C-----------------------------------------------------------------------
@@ -79,6 +101,10 @@ C-----------------------------------------------------------------------
 C-----------------------------------------------------------------------
 C QR with pivoting
 C-----------------------------------------------------------------------
+      DO I = 1, N
+         JPIV(I) = 0
+      END DO
+
       CALL DGEQP3(N, N, XD, N, JPIV, TAU,
      &            WORK, LWORK, INFO2)
       IF (INFO2 .NE. 0) THEN
@@ -86,7 +112,11 @@ C-----------------------------------------------------------------------
          RETURN
       END IF
 C--------- Form Q explicitly--------------------------------------------
-      Q = XD
+      DO J = 1, N
+         DO I = 1, N
+            Q(I,J) = XD(I,J)
+         END DO
+      END DO
       CALL DORGQR(N, N, N, Q, N, TAU,
      &            WORK, LWORK, INFO2)
 
@@ -110,9 +140,10 @@ C Apply QR permutation
 C-----------------------------------------------------------------------
       DO J = 1, N
          DO I = 1, N
-            UP(I,J) = U(I, JPIV(J))
+            UP(I,J) = U(JPIV(I), J)
          END DO
-      END DO
+      END DO    
+      
       CALL DGEMM('N','N',
      &           N, N, N,
      &           1.0D0,
