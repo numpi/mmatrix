@@ -1,7 +1,8 @@
 #include "mex.h"
 #include <math.h>
 
-/* Fortran routines */
+/* ================= FORTRAN ROUTINES ================= */
+
 extern void dmmltf_(mwSignedIndex *n,
                      double *A,
                      mwSignedIndex *lda,
@@ -18,9 +19,10 @@ extern void dmmsvd_(mwSignedIndex *n,
                      double *VMAT, mwSignedIndex *ldvf,
                      double *work, mwSignedIndex *lwork,
                      mwSignedIndex *iwork,
-                     mwSignedIndex *piv,    
+                     mwSignedIndex *piv,
                      mwSignedIndex *info);
 
+/* ============================================================ */
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
@@ -32,7 +34,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (mxGetN(prhs[0]) != n)
         mexErrMsgTxt("Aoff must be square");
 
-    /* Duplicate inputs (Fortran will overwrite) */
+    /* Duplicate inputs */
     mxArray *Ain = mxDuplicateArray(prhs[0]);
     mxArray *sin = mxDuplicateArray(prhs[1]);
 
@@ -40,54 +42,46 @@ void mexFunction(int nlhs, mxArray *plhs[],
     double *s = mxGetPr(sin);
 
     /* pivot array */
-    mwSignedIndex *piv =
-        (mwSignedIndex*)mxMalloc(n * sizeof(mwSignedIndex));
-
+    mwSignedIndex *piv = (mwSignedIndex*)mxMalloc(n * sizeof(mwSignedIndex));
     mwSignedIndex info;
 
-/* ============================================================
-   DMMLTF
-   ============================================================ */
     dmmltf_(&n, A, &n, s, piv, &info);
 
     if (info != 0)
         mexErrMsgTxt("DMMLTF failed");
 
-/* ============================================================
-   Extract L, D, U from A
-   ============================================================ */
+/* Extract L, D, U */
 
-    double *L = (double*)mxCalloc(n * n, sizeof(double));
-    double *U = (double*)mxCalloc(n * n, sizeof(double));
-    double *D = (double*)mxCalloc(n, sizeof(double));
+    double *L = (double*)mxCalloc(n*n, sizeof(double));
+    double *U = (double*)mxCalloc(n*n, sizeof(double));
+    double *D = (double*)mxCalloc(n, sizeof(double));  
 
     for (mwSignedIndex i = 0; i < n; i++)
     {
-        D[i] = A[i + i * n];
+        D[i] = A[i + i*n];
 
         for (mwSignedIndex j = 0; j < n; j++)
         {
             if (i > j)
             {
-                L[i + j * n] = A[i + j * n];
-                U[i + j * n] = 0.0;
+                L[i + j*n] = A[i + j*n];
+                U[i + j*n] = 0.0;
             }
             else if (i == j)
             {
-                L[i + j * n] = 1.0;
-                U[i + j * n] = 1.0;
+                L[i + j*n] = 1.0;
+                U[i + j*n] = 1.0;
             }
             else
             {
-                L[i + j * n] = 0.0;
-                U[i + j * n] = A[i + j * n] / A[i + i * n];
+                double d = A[i + i*n];
+                U[i + j*n] = (d != 0.0) ? (A[i + j*n] / d) : 0.0;
+                L[i + j*n] = 0.0;
             }
         }
     }
 
-/* ============================================================
-   Outputs
-   ============================================================ */
+/* OUTPUT ARRAYS */
 
     plhs[0] = mxCreateDoubleMatrix(n, n, mxREAL);
     plhs[1] = mxCreateDoubleMatrix(n, 1, mxREAL);
@@ -97,22 +91,33 @@ void mexFunction(int nlhs, mxArray *plhs[],
     double *Sout = mxGetPr(plhs[1]);
     double *Vout = mxGetPr(plhs[2]);
 
-/* ============================================================
-    Workspace
-   ============================================================ */
+/*  WORKSPACE QUERY  */
 
-    mwSignedIndex lwork = n*n + 10*n;
+    mwSignedIndex lwork = -1;    
+    double work_query = 0.0;
 
-    double *work =
-        (double*)mxMalloc(lwork * sizeof(double));
+    mwSignedIndex *iwork = (mwSignedIndex*)mxMalloc((n + 10) * sizeof(mwSignedIndex));
 
-    mwSignedIndex *iwork =
-        (mwSignedIndex*)mxMalloc((n + 10) * sizeof(mwSignedIndex));
+    dmmsvd_(&n,
+            L, &n,
+            D,
+            U, &n,
+            Sout,
+            Uout, &n,
+            Vout, &n,
+            &work_query,
+            &lwork,
+            iwork,
+            piv,
+            &info);
 
-/* ============================================================
-    DMMSVD  
-   ============================================================ */
+    if (info != 0)
+        mexErrMsgTxt("DMMSVD workspace query failed");
 
+ 
+    lwork = (mwSignedIndex)work_query;
+    double *work = (double*)mxMalloc(lwork * sizeof(double));
+ 
     dmmsvd_(&n,
             L, &n,
             D,
@@ -122,15 +127,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
             Vout, &n,
             work, &lwork,
             iwork,
-            piv,   
+            piv,
             &info);
 
     if (info != 0)
         mexErrMsgTxt("DMMSVD failed");
 
-/* ============================================================
-   cleanup
-   ============================================================ */
+/* CLEANUP */
 
     mxFree(L);
     mxFree(U);
