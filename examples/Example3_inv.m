@@ -7,7 +7,7 @@ clc;
 clear;
 close all;
 
-%Parameters
+% Parameters
 n = 32;                             % Matrix size (n x n)
 sigmas = 10.^(-(1:0.5:12));         % Range of sigma values (affects conditioning)
 ns = length(sigmas);
