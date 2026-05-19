@@ -44,7 +44,7 @@ for k = 1:ns
     % dmmtri
     tic;
     U = mmex.dmmtrff(A, u, v);  % Compute upper triangular factor
-    Ainv_dmmtri = dmmtri_mex(U); % Compute inverse from LU factors
+    Ainv_dmmtri = mmex.dmmtri(U); % Compute inverse from LU factors
     tinv_dmmtri(k) = toc;
 
     nrm_inv_dmmtri(k)  = norm(Ainv_dmmtri - Ainv_exact, 'fro') / norm(Ainv_exact, 'fro');
