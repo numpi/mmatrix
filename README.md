@@ -16,6 +16,15 @@ To run a more detailed interactive demo:
 >> main_matlab
 ```
 
+To download and install the toolbox directly from GitHub, run:
+
+```matlab
+unzip('https://github.com/numpi/mmatrix/archive/main.zip');
+movefile('mmatrix-main', 'mmatrix-toolbox');
+addpath(fullfile('mmatrix-toolbox'));
+savepath;
+```
+
 ### Descriptions of the variants:
 
 #### Right triplet algorithms:
