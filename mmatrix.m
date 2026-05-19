@@ -144,7 +144,6 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             U = triu(U);
         end
         %------------------------------------------------------------------
-               %------------------------------------------------------------------
         function [L, U] = lumatlab(obj)
             % [L, U] = lumatlab(M)
             % Forms the LU factorization of M using pure MATLAB
@@ -291,7 +290,6 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             S = diag(sigma);
         end
         %------------------------------------------------------------------
-        %------------------------------------------------------------------
         function [lambda, u, iter, info] = eigmin(obj, tol, maxit)
         % Smallest eigenvalue of a triplet M-matrix
 
@@ -317,37 +315,23 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             if nargin < 3
                 maxit = 100;
             end
-            u_s = obj.u;
-            lambda = min(obj.v ./ obj.u);
-            v_s = obj.v - lambda * obj.u;
-
+            u = obj.u; v = obj.v;
+            lambda = min(v./u);
+            v = v - lambda * u;
             for iter = 1:maxit
-
                 if obj.left
-                    w = mmex.dmltrff_lsolve(obj.M, u_s, v_s, u_s);
+                    z = mmex.dmltrff_lsolve(obj.M, u, v, u);
                 else
-                    w = mmex.dmmtrff_solve(obj.M, u_s, v_s, u_s);
+                    z = mmex.dmmtrff_solve(obj.M, u, v, u);
                 end
-
-                ratios = u_s ./ w;
-                theta = min(ratios);
-
-                lambda_new = lambda + theta;
-
-                u_new = w / norm(w, inf);
-                v_new = u_new .* (ratios - theta);
-
-                if (max(ratios) - min(ratios)) / lambda_new <= tol
-                    lambda = lambda_new;
-                    u = u_new;
+                p = u ./ z;
+                lambda = lambda + min(p);
+                u = z / norm(z, inf);
+                v = u .* (p - min(p));
+                if (max(p) - min(p)) / lambda <= tol
                     break;
                 end
-
-                lambda = lambda_new;
-                u_s = u_new;
-                v_s = v_new;
             end
-
             if iter == maxit
                 warning('mmatrix:eigmin', 'Max iterations reached');
             end
