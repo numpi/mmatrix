@@ -6,7 +6,7 @@ function build_mex()
         "dmmtf2.f", "dmmtrf.f", "dmmtrff.f", "dmmtrf2.f", ...
         "dmltf2.f", "dmltrf.f", "dmltrff.f", "dmltrf2.f", ...
         "dgetf2_reference.f", "dgetrf_reference.f", "dgetrf2_reference.f", ...
-        "dmmtri.f"};
+        "dmmtri.f", "dmmltf.f", "dmmsvd.f"};
 
     for i = 1:length(fortran_files)
         fprintf('Compiling %s...\n', fortran_files{i});
@@ -43,9 +43,12 @@ function build_mex()
     link_gateway("dgetrf2_reference", {"dgetrf2_reference"}, {"HAS_IPIV"});
     link_gateway("dgetrf_reference", {"dgetrf2_reference", "dgetrf_reference"}, {"HAS_IPIV"});
 
-    % this last file is built without the gateway, with a separate .c file
+    % this last two files are built without the gateway, with a separate .c file
     fprintf('Linking dmmtri.f...\n');
     mex("-largeArrayDims", "-outdir", "+mmex", "fortran/dmmtri_mex.c", "+mmex/dmmtri."+objext, "-lmwlapack", "-lmwblas", "-output", "dmmtri");
+    fprintf('Linking dmmsvd.f...\n');
+    mex("-largeArrayDims", "-outdir", "+mmex", "fortran/dmmsvd_mex.c", "+mmex/dmmsvd."+ objext, "+mmex/dmmltf."+ objext, "-lmwlapack", "-lmwblas", "-output", "dmmsvd");
+    fprintf('\n=== All compilations complete! ===\n');
 
     fprintf('\n=== All compilations complete! ===\n');
 
