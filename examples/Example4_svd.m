@@ -1,9 +1,4 @@
 % Example 4 (Accurate singular value decomposition of an M‑matrix).
-% To compile mex file:
-
-mex -c -largeArrayDims dmmltf.f
-mex -c -largeArrayDims dmmsvd.f
-mex -largeArrayDims dmmsvd_mex.c dmmltf.obj dmmsvd.obj -lmwlapack -lmwblas
 
 % This example illustrates how to compute the singular values of a
 % randomly generated ill‑conditioned M‑matrix using the mmatrix-toolbox.
