@@ -137,13 +137,21 @@ C--------- Extract R----------------------------------------------------
       END DO
 C-----------------------------------------------------------------------
 C Apply QR permutation
-C-----------------------------------------------------------------------
       DO J = 1, N
          DO I = 1, N
-            UP(I,J) = U(JPIV(I), J)
+            XD(I,J) = U(I,J)
          END DO
-      END DO    
-      
+      END DO
+      DO K = N, 1, -1
+         IF (PIV(K) .NE. K) THEN
+            CALL DSWAP(N, XD(1,K), 1, XD(1,PIV(K)), 1)
+         END IF
+      END DO
+      DO J = 1, N
+         DO I = 1, N
+            UP(I,J) = XD(JPIV(I), J)
+         END DO
+      END DO          
       CALL DGEMM('N','N',
      &           N, N, N,
      &           1.0D0,
