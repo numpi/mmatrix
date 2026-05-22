@@ -275,18 +275,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % with high relative accuracy," Linear Algebra and its
             % Applications, 299 (1999), 21–80.
 
-            A_off = obj.M;
-            A_off(1:obj.n+1:end) = 0;
-            s = zeros(obj.n,1);
-            for i = 1:obj.n
-                s(i) = obj.M(i,i);
-                for j = 1:obj.n
-                    if j ~= i
-                        s(i) = s(i) + obj.M(i,j);
-                    end
-                end
-            end
-            [U, sigma, V] = mmex.dmmsvd(A_off, s);
+            [U, sigma, V] = mmex.dmmsvd(obj.M, obj.u, obj.v);
             S = diag(sigma);
         end
         %------------------------------------------------------------------
