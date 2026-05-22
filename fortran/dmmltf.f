@@ -1,50 +1,43 @@
-
-      SUBROUTINE DMMLTF(N, A, LDA, S, PIV, INFO)
+       SUBROUTINE DMMLTF(N, A, LDA, U, V, PIV, INFO)
 C-----------------------------------------------------------------------
-C  DMMLTF: Double-precision M-Matrix LDU Factorization
-C
-C  This subroutine implements LDU factorization from:
-C
-C  J. Demmel and P. Koev,
-C  "Accurate SVDs of weakly diagonally dominant M-matrices,"
-C  Numerische Mathematik, 98:99–104, 2004.
-C
-C  The algorithm computes an LDU factorization of a diagonally dominant
-C  M-matrix using only its off-diagonal entries and row sums.
+C  DMMLTF: Double-precision M-Matrix LDU Factorization 
 C
 C  Input:
 C     N     - matrix size
 C     A     - matrix storing off-diagonal entries 
 C     LDA   - leading dimension of A
-C     S     - row sums vector
+C     U     -  vector u
+C     V     - right-hand side vector v
 C
 C  Output:
 C     A     - contains L (unit lower) and U (upper) factors
-C     S     - updated row sums
+C     U - permuted vector u
+C     V - updated vector v
 C     PIV   - pivot indices
 C     INFO  - = 0 successful
 C-----------------------------------------------------------------------
+      IMPLICIT NONE
       INTEGER N, LDA, INFO
       INTEGER PIV(*)
-      DOUBLE PRECISION A(LDA,*), S(*)
+      DOUBLE PRECISION A(LDA,*), U(*), V(*)
 
       INTEGER I, J, K, KP
-      DOUBLE PRECISION MAXVAL, TEMP, DIAG
+      DOUBLE PRECISION MAXVAL, TEMP, DIAG, S
 
-      EXTERNAL DSWAP, DGER
+      EXTERNAL DSWAP, DGER, DAXPY
 
       INFO = 0
 C-----------------------------------------------------------------------
 C Main loop
       DO K = 1, N
 
-C Construct diagonal entries from row sums
+C Construct diagonal entries from u and v
          DO I = K, N
-            TEMP = S(I)
+            S = 0.0D0
             DO J = K, N
-               IF (J .NE. I) TEMP = TEMP - A(I,J)
+               IF (J .NE. I) S = S + A(I,J) * U(J)
             END DO
-            A(I,I) = TEMP
+            A(I,I) = (V(I) - S) / U(I)
          END DO
 
 C Pivot (largest diagonal entry)
@@ -62,9 +55,15 @@ C Pivot (largest diagonal entry)
 
          IF (KP .NE. K) THEN
             CALL DSWAP(N, A(K,1), LDA, A(KP,1), LDA)
-            TEMP = S(K)
-            S(K) = S(KP)
-            S(KP) = TEMP
+            CALL DSWAP(N, A(1,K), 1, A(1,KP), 1)
+C           Swap vectors
+            TEMP = U(K)
+            U(K) = U(KP)
+            U(KP) = TEMP
+            
+            TEMP = V(K)
+            V(K) = V(KP)
+            V(KP) = TEMP
          END IF
 
          DIAG = A(K,K)
@@ -77,8 +76,8 @@ C Pivot (largest diagonal entry)
             A(I,K) = A(I,K) / DIAG
          END DO
 
-         CALL DAXPY(N-K, -S(K), A(K+1,K), 1, S(K+1), 1)
-
+C        Update V
+         CALL DAXPY(N-K, -V(K), A(K+1,K), 1, V(K+1), 1)
 
          IF (K .LT. N) THEN
             CALL DGER(N-K, N-K,
