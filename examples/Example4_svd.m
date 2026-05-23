@@ -74,18 +74,6 @@ for row = 1:length(u_modes)
         [Uv, Sv, Vv] = svd(A_true_vpa, 'econ');
         Sv = sort(double(diag(Sv)), 'descend');
 
-
-        % componentwise relative 
-        rel_err_Uf = max(max( (abs(Uf) - abs(Uv)) ./ max(abs(Uv)) ));
-        rel_err_Vf = max(max( (abs(Vf) - abs(Vv)) ./ max(abs(Vv)) ));
-        rel_err_Um = max(max( (abs(Um) -  abs(Uv)) ./ max(abs(Uv)) ));
-        rel_err_Vm = max(max( (abs(Vm) - abs(Vv)) ./ max(abs(Vv)) ));
-        fprintf('  cond(Uf):            %.2e\n', cond(Uf));
-        fprintf('  cond(Um):            %.2e\n', cond(Um));
-        fprintf('  Error in U:            %.2e\n', rel_err_Uf);
-        fprintf('  Error in V:            %.2e\n', rel_err_Vf);
-        fprintf('  Error in U:            %.2e\n', rel_err_Um);
-        fprintf('  Error in V:            %.2e\n', rel_err_Vm);
         
         % Plotting
         subplot(2, length(n_values), plot_idx);
