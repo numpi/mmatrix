@@ -2,7 +2,8 @@ clear; close all; clc;
 digits(300)
 
 n = 10;
-rr=randn(n,1);rnd=rand(n);
+rnd=rand(n);r1=rand(n,1);r2=randn(n,1);
+
 % ------------------------------------------------------------
 u_scales = [0 1 2 3 4 6 8 9 10 11 12 13 14 15 16 18 20 25];
 
@@ -40,7 +41,7 @@ for t = 1:num_tests
     if alpha==0
         u=ones(n,1);
     else
-        u = rr.*exp(alpha*rr);
+        u  = r1.*exp(alpha*r2);
     end
     kappa_u = max(abs(u)) / min(abs(u));
     % ------------------------------------------------------------
