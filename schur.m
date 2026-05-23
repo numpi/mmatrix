@@ -1,6 +1,6 @@
-function [M1, M2] = minor(obj, p, q)
+function [M1, M2] = schur(obj, p, q)
 % ------------------------------------------------------------
-% [M1, M2] = minor(obj, p, q)
+% [M1, M2] = schur(obj, p, q)
 % computes the minor and the Schur complement of M
 %   with respect to the indices p  and q in triplet mmatrix form
 % M: triplet mmatrix (obj.M)
