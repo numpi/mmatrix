@@ -3,8 +3,6 @@
 %   This script compares standard MATLAB SVD and the mmatrix-toolbox SVD.
 %
 %  Notes:
-%   * The singular vector matrices U and V are well-conditioned. Since they 
-%     are orthogonal, their condition numbers satisfy cond(U) = cond(V) = 1.
 %   * Standard MATLAB SVD loses component-wise accuracy (compS_A) as the 
 %     matrix condition number increases.
 %   * The SVD algorithm in the mmatrix-toolbox maintains componentwise 
@@ -35,7 +33,7 @@ for sigma = sigmas
         condA(k) = cond(A);
         
         % High-Precision SVD
-        [~, S_h, ~] = svd(vpa(A, 100));
+        [~, S_h, ~] = svd(vpa(M, 100));
         S_h = (diag(S_h)); 
 
         % Standard MATLAB SVD
