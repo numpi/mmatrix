@@ -4,42 +4,42 @@ n  = 16;    % Matrix size
 nb = 8;     % Block size for blocked algorithms
 
 % Generate test matrices
-[Ml, vl, wl] = randtriplet(n, left=true);  % Left case:  v'*M = w'
-[Mr, vr, wr] = randtriplet(n);              % Right case: M*v = w
+Ml = gettriplet('rand', size=n, left=true);
+Mr = gettriplet('rand', size=n, left=false);
 
 % Run all factorizations:
 % left case-----------------------------------------------------------
 % gth which corresponds to dmltf2
-[L,U] = gthlu(Ml, vl, wl, 'left');
-err_gth_left = norm(L*U - Ml, 'fro');
+[L,U] = gthlu(Ml.M, Ml.u, Ml.v, 'left');
+err_gth_left = norm(L*U - double(Ml), 'fro');
 
 %Recursive blocked gth which corresponds to dmltrf2
-[L,U] = gthlu_recursive(Ml, vl, wl, 'left');
-err_rgth_left = norm(L*U - Ml, 'fro');
+[L,U] = gthlu_recursive(Ml.M, Ml.u, Ml.v, 'left');
+err_rgth_left = norm(L*U - double(Ml), 'fro');
 
 %Blocked gth which corresponds to dmltrf
-[L,U] = blocked_gthlu_left(Ml, vl, wl, nb);
-err_bgth_left = norm(L*U - Ml, 'fro');
+[L,U] = blocked_gthlu_left(Ml.M, Ml.u, Ml.v, nb);
+err_bgth_left = norm(L*U - double(Ml), 'fro');
 
 %Recursive blocked gth which corresponds to dmltrff
-[L,U] = rec_blocked_gthlu_left(Ml, vl, wl, nb);
-err_rbgth_left = norm(L*U - Ml, 'fro');
+[L,U] = rec_blocked_gthlu_left(Ml.M, Ml.u, Ml.v, nb);
+err_rbgth_left = norm(L*U - double(Ml), 'fro');
 % right case-----------------------------------------------------------
 % gth which corresponds to dmmtf2
-[L,U] = gthlu(Mr, vr, wr);
-err_gth_right = norm(L*U - Mr, 'fro');
+[L,U] = gthlu(Mr.M, Mr.u, Mr.v);
+err_gth_right = norm(L*U - double(Mr), 'fro');
 
 %Recursive blocked gth which corresponds to dmmtrf2
-[L,U] = gthlu_recursive(Mr, vr, wr);
-err_rgth_right = norm(L*U - Mr, 'fro');
+[L,U] = gthlu_recursive(Mr.M, Mr.u, Mr.v);
+err_rgth_right = norm(L*U - double(Mr), 'fro');
 
 %Blocked gth which corresponds to dmmtrf
-[L,U] = blocked_gthlu_right(Mr, vr, wr, nb);
-err_bgth_right = norm(L*U - Mr, 'fro');
+[L,U] = blocked_gthlu_right(Mr.M, Mr.u, Mr.v, nb);
+err_bgth_right = norm(L*U - double(Mr), 'fro');
 
 %Recursive blocked gth which corresponds to dmmtrff
-[L,U] = rec_blocked_gthlu_right(Mr, vr, wr, nb);
-err_rbgth_right = norm(L*U - Mr, 'fro');
+[L,U] = rec_blocked_gthlu_right(Mr.M, Mr.u, Mr.v, nb);
+err_rbgth_right = norm(L*U - double(Mr), 'fro');
 
 % Display results
 fprintf('Errors\n');

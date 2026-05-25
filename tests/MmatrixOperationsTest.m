@@ -76,13 +76,9 @@ end
 
 function testSum(testCase)
     for left = [true, false]
-        rng(0);
         n = 5;
-        [AM, u, v] = randtriplet(n, left=left);
-        [BM, uB, vB] = randtriplet(n, left=left);
-    
-        A = mmatrix(AM, u, v, left=left);
-        B = mmatrix(BM, uB, vB, left=left);
+        A = gettriplet('rand', seed=0, size=n, left=left);
+        B = gettriplet('rand', seed=1, size=n, left=left);
     
         testCase.verifyWarning(@() A+B, 'mmatrix:inaccurate')
         state = warning;
@@ -93,14 +89,7 @@ function testSum(testCase)
         warning(state);
 
         % modify B so that it has uB==uA
-        BM = BM .* transpose((uB./u));
-        if left
-            testCase.verifyEqual(u*BM, vB, RelTol=1e-9);
-        else
-            testCase.verifyEqual(BM*u, vB, RelTol=1e-9);
-        end
-        uB = u;
-        B = mmatrix(BM, uB, vB, left=left);
+        B = mmatrix(B.M, A.u, B.v, left=left);
     
         C = A + B;
         testCase.verifyClass(C, 'mmatrix');
@@ -109,11 +98,10 @@ function testSum(testCase)
 end
 
 function testmldivide(testCase)
-    for left = [true, false]
-        rng(0);
+    for left = [true, false]        
         n = 9;
-        [AM, u, v] = randtriplet(n, left=left);
-        A = mmatrix(AM, u, v, left=left);
+        A = gettriplet('rand', size=n, seed=0, left=left);
+        rng(1);
         D = rand(n, 4);
         testCase.verifyEqual(A \ D, double(A) \ D, RelTol=1e-9);
         testCase.verifyEqual(D' / A, D' / double(A), RelTol=1e-9);
@@ -122,10 +110,8 @@ end
 
 function testUtilityFunctions(testCase)
     for left = [true, false]
-        rng(0);
         n = 9;
-        [AM, u, v] = randtriplet(n, left=left);
-        A = mmatrix(AM, u, v, left=left);
+        A = gettriplet('rand', size=n, seed=0, left=left);
         testCase.verifyEqual(size(A), [n n]);
         testCase.verifyEqual(size(A,1), n);
         testCase.verifyEqual(length(A), n);
@@ -136,10 +122,9 @@ end
 
 function testIndexing(testCase)
     for left = [true, false]
-        rng(0);
         n = 3;
-        [AM, u, v] = randtriplet(n, left=left);
-        A = mmatrix(AM, u, v, left=left);
+        A = gettriplet('rand', size=n, seed=0, left=left);
+        AM = double(A);
         % Test indexing for mmatrix
         I1 = [false true true];
         I2 = 1:2;
@@ -188,8 +173,7 @@ function testLU(testCase)
     for left = [true, false]
         rng(0);
         n = 8;
-        [AM, u, v] = randtriplet(n, left=left);
-        A = mmatrix(AM, u, v, left=left);
+        A = gettriplet('rand', size=n, seed=0, left=left);
         % Test indexing for mmatrix
         [L, U] = lu(A);
         testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
