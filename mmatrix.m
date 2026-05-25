@@ -275,8 +275,17 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % with high relative accuracy," Linear Algebra and its
             % Applications, 299 (1999), 21–80.
 
-            [U, sigma, V] = mmex.dmmsvd(obj.M, obj.u, obj.v);
-            S = diag(sigma);
+            if obj.left
+                [V, sigma, U] = mmex.dmmsvd(obj.M', obj.u', obj.v');
+            else
+                [U, sigma, V] = mmex.dmmsvd(obj.M, obj.u, obj.v);
+            end
+            
+            if nargout == 1
+                U = sigma;
+            else
+                S = diag(sigma);
+            end
         end
         %------------------------------------------------------------------
         function [lambda, u, iter, info] = eigmin(obj, tol, maxit)
