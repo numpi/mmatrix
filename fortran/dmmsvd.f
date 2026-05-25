@@ -58,14 +58,23 @@ C-----------------------------------------------------------------------
             JPIV(I) = 0
          END DO
 
-         CALL DGEQP3(N, N, XD, N, JPIV, TAU, WORK, -1, INFO2)
+         CALL DGEQP3(N, N, XD, N, JPIV, TAU, WORK, LWORK, INFO2)
          OPTWORK = MAX(OPTWORK, WORK(1))
 
-         CALL DORGQR(N, N, N, Q, N, TAU, WORK, -1, INFO2)
+         LWORK = -1
+         CALL DORGQR(N, N, N, Q, N, TAU, WORK, LWORK, INFO2)
          OPTWORK = MAX(OPTWORK, WORK(1))
 
-         CALL DGESVJ('G','U','V', N, N, W, N, S, N, VMAT, LDVF, 
-     &               WORK, -1, INFO2)
+C We hardcode here the optimal LWORK size for DGESVJ, since the Intel 
+C OneMKL used on certain Matlab versions does not support workspace queries
+         WORK(1) = MAX(6, N+N)
+C         LWORK = -1
+C         CALL DGESVJ('G','U','V', N, N, W, N, S, N, VMAT, LDVF, 
+C     &               WORK, LWORK, INFO2)
+C         IF (INFO2 .EQ. -13) THEN
+C            WORK(1) = MAX(6, N+N)
+C         END IF
+         
          OPTWORK = MAX(OPTWORK, WORK(1))
 
          WORK(1) = OPTWORK
@@ -74,6 +83,7 @@ C-----------------------------------------------------------------------
 C-----------------------------------------------------------------------
 C Build permutation matrix from  PIV
 C-----------------------------------------------------------------------
+
       DO J = 1, N
          DO I = 1, N
             Q(I,J) = 0.0D0
