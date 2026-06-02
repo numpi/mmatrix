@@ -353,7 +353,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % Computes M^{1/2}, the square root of the M-matrix M
             % B = sqrtm(M) 
             % [B, out] = sqrtm(M)
-            % B = sqrtm(M, gamma = 1.5, maxit = 20, tol = 1d-20)
+            % B = sqrtm(M, gamma = 1.5, maxit = 100, tol = 1d-20)
             % 
             % M: triplet M-matrix
             % opts.gamma: cancellation reducing parameters (default = 1.5)
@@ -373,7 +373,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             %
             % Warning: the algorithm makes a subtraction in the first step,
             % the parameter gamma reduces the cancellation to subtraction 
-            % of the type (gamma - a) with a<=1, an high value of gamma
+            % of the type (1 - 1/gamma) with a<=1, an high value of gamma
             % slows down the convergence.
 
             arguments
