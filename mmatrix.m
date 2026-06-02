@@ -16,7 +16,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         n % size of the triplet mmatrix
     end
 
-    methods % getter, setter, disp
+    methods % getter, setter
 
         function n = get.n(obj)
             % get the size of the triplet
