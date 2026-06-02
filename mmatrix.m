@@ -359,7 +359,6 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % opts.gamma: cancellation reducing parameters (default = 1.5)
             % opts.maxit: maximum number of iterations (default = 100)
             % opts.tol: tolerance in the stopping criterion (default = 1d-20)
-            % opts.purematlab: forces the use of MATLAB only (default = 0)
             % B: the square root
             % out: output structure, contains
             %      out.it: number of iterations
@@ -381,7 +380,6 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 opts.gamma = 1.5
                 opts.maxit = 100
                 opts.tol = 1d-20
-                opts.purematlab = 0
             end
 
             if M.left
@@ -400,14 +398,9 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             Z = (1/2) * (eye(n) + M);
             p = M.v;
             for ell = 1:opts.maxit
-                if purematlab
-                    [L, U] = lumatlab(Z);
-                    p = p + 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
-                    W = 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
-                else
-                    p = p + 1/2 * W * (Z\p);
-                    W = 1/4 * W * (Z\W);
-                end
+                [L, U] = lumatlab(Z);
+                p = p + 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
+                W = 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
                 Z = mmatrix(Z.M - 1/2 * W, M.u, p + 1/2 * W * M.u);
                 if norm(W) < opts.tol
                    break;
