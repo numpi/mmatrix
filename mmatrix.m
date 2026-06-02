@@ -353,12 +353,13 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % Computes M^{1/2}, the square root of the M-matrix M
             % B = sqrtm(M) 
             % [B, out] = sqrtm(M)
-            % B = sqrtm(M, g = 4, maxit = 20, tol = 1d-20)
+            % B = sqrtm(M, gamma = 1.5, maxit = 20, tol = 1d-20)
             % 
             % M: triplet M-matrix
-            % opts.gamma: cancellation reducing parameters (default = 4)
-            % opts.maxit: maximum number of iterations (default = 20)
+            % opts.gamma: cancellation reducing parameters (default = 1.5)
+            % opts.maxit: maximum number of iterations (default = 100)
             % opts.tol: tolerance in the stopping criterion (default = 1d-20)
+            % opts.purematlab: forces the use of MATLAB only (default = 0)
             % B: the square root
             % out: output structure, contains
             %      out.it: number of iterations
@@ -366,9 +367,9 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             % The algorithm is Newton's method written in Cyclic Reduction
             % form and with an iteration on the triplet, from
             %
-            % D. A. Bini, B. Iannazzo, B. Meini, J. Meng, "Componentwise
+            % D. A. Bini, B. Iannazzo, B. Meini, J. Meng, "Component-wise
             % accurate computation of the square root of an M-matrix",
-            % manuscript, 2026.
+            % arXiv, 2026 (https://arxiv.org/abs/2605.21679).
             %
             % Warning: the algorithm makes a subtraction in the first step,
             % the parameter gamma reduces the cancellation to subtraction 
@@ -377,9 +378,10 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
 
             arguments
                 M
-                opts.gamma = 4
-                opts.maxit = 20
+                opts.gamma = 1.5
+                opts.maxit = 100
                 opts.tol = 1d-20
+                opts.purematlab = 0
             end
 
             if M.left
@@ -394,14 +396,19 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             n = M.n;
             gamma = gamma * max(diag(M));
             M = 1/gamma * M;
-            W = M.M - eye(n); % not componentwise accurate
+            W = eye(n) - M.M; % not componentwise accurate
             Z = (1/2) * (eye(n) + M);
             p = M.v;
             for ell = 1:opts.maxit
-                [L, U] = lumatlab(Z);
-                p = p - 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
-                W = - 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
-                Z = mmatrix(Z.M + 1/2 * W, M.u, p - 1/2 * W * M.u);
+                if purematlab
+                    [L, U] = lumatlab(Z);
+                    p = p + 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
+                    W = 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
+                else
+                    p = p + 1/2 * W * (Z\p);
+                    W = 1/4 * W * (Z\W);
+                end
+                Z = mmatrix(Z.M - 1/2 * W, M.u, p + 1/2 * W * M.u);
                 if norm(W) < opts.tol
                    break;
                 end
