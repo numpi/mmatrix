@@ -50,6 +50,7 @@ title('Matrix Square Root: MATLAB vs. mmatrix-toolbox');
 legend('Location', 'northwest');
 
 function mu = condsqrtm(A)
+% suited for small matrices only since it forms the Frechet derivative explictly
 X = sqrtm(A);
 I = eye(size(A, 1));
 mu = norm(A, 'fro')/norm(X, 'fro') * norm( inv(kron(I, X)+kron(X.',I)) );
