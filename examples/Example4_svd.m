@@ -6,7 +6,7 @@
 % We compare three ways to obtain the singular values:
 %   1) mmatrix svd   – accurate, using the triplet representation
 %   2) MATLAB's svd  – standard double‑precision svd
-%   3) vpa svd       – high‑precision svd (100 decimal digits)
+%   3) vpa svd       – high‑precision svd (800 decimal digits)
 %
 % The results shows that the svd from mmatrix-toolbox remains accurate
 % down to the level of sigma1*eps, whereas the standard svd loses all
@@ -14,9 +14,9 @@
 
 clear; close all; clc;
 
-n_values = [20 40];
+n_values = [20 30];
 u_modes = {'Well-conditioned', 'Ill-conditioned'};
-digits(110) 
+digits(800) 
 
 figure('Position', [100, 100, 1400, 900]);
 plot_idx = 1;
@@ -33,7 +33,7 @@ for row = 1:length(u_modes)
             v(i) = rand() * 10^randi([-40,-20]);
         end
         for i = 1:n
-            r = rand(); j = randi([-80,80]); scale = r * 10^j;
+            r = rand(); j = randi([-100,100]); scale = r * 10^j;
             A_off(i,:) = A_off(i,:) * scale; v(i) = v(i) * scale;
         end
         
