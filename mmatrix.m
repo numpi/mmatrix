@@ -98,7 +98,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function Md = double(obj)
             % Md = double(M)
-            % makes the triplet mmatrix M a matrix of doubles
+            % Convert the triplet mmatrix M intoa matrix of doubles
             % M: triplet mmatrix
             % Md: the mmatrix M as a double
             Md = obj.M;
@@ -106,7 +106,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function M2 = vpa(obj, f)
             % M2 = vpa(M, f)
-            % Makes the triplet mmatrix a vpa matrix
+            % Convert the triplet mmatrix into a vpa matrix
             % M: triplet mmatrix
             % f: digits (optional, default = 40)
             % M2: the triplet mmatrix M as a vpa
@@ -131,7 +131,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function [L, U] = lu(obj)
             % [L, U] = lu(M)
-            % computes the LU factorization of the triplet mmatrix with
+            % compute the LU factorization of the triplet mmatrix with
             % the GTH algorithm implemented in Fortran
             % M: triplet mmatrix
             % L, U: factors of the LU factorization
@@ -146,7 +146,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function [L, U] = lumatlab(obj)
             % [L, U] = lumatlab(M)
-            % Forms the LU factorization of M using pure MATLAB
+            % Form the LU factorization of M using pure MATLAB
             % M: triplet mmatrix
             % L, U: factors
                         
@@ -189,7 +189,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function [L, U] = lumatlabold(obj)
             % [L, U] = lu(M)
-            % Forms the LU factorization of M
+            % Form the LU factorization of M
             % M: triplet mmatrix
             % L, U: factors
             if obj.left
@@ -201,7 +201,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function X = mldivide(obj, B)
             % X = mldivide(M, B)
-            % Computes M\B, accurate if B is nonnegative
+            % Compute M\B, accurate if B is nonnegative
             % M: triplet mmatrix
             % B: right hand side
             % X: M\B
@@ -221,7 +221,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function X = inv(obj)
             % X = inv(M)
-            % computes the inverse of the triplet mmatrix M
+            % Compute the inverse of the triplet mmatrix M
             % M: triplet mmatrix
             % X = obj.M\eye(obj.n);
             % here we can use dmmtri for the both left and right triplet
@@ -236,7 +236,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         %------------------------------------------------------------------
         function X = mrdivide(B, obj)
             % X = mrdivide(B, M)
-            % Computes B/M, accurate if B is nonnegative
+            % Compute B/M, accurately if B is nonnegative
             % M: triplet mmatrix
             % B: left hand side
             % X: B/M
@@ -350,7 +350,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         end
         %------------------------------------------------------------------
         function [B, out] = sqrtm(M, opts)
-            % Computes M^{1/2}, the square root of the M-matrix M
+            % Compute M^{1/2}, the square root of the M-matrix M
             % B = sqrtm(M) 
             % [B, out] = sqrtm(M)
             % B = sqrtm(M, gamma = 1.5, maxit = 100, tol = 1d-20)
@@ -394,7 +394,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             n = M.n;
             gamma = gamma * max(diag(M));
             M = 1/gamma * M;
-            W = eye(n) - M.M; % not componentwise accurate
+            W = eye(n) - M.M; % not subtraction-free, but the scaling ensures subtraction-safety
             Z = (1/2) * (eye(n) + M);
             p = M.v;
             for ell = 1:opts.maxit
