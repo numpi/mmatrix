@@ -7,3 +7,4 @@ __pycache__
 *.mexglx
 *.mexmaca64
 *.mexmaci64
+*.asv
