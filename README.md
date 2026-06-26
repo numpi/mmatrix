@@ -1,22 +1,25 @@
-## GTH algorithm implemented in Fortran + Matlab mex-file interface.
+# MMatrix Matlab toolbox
 
-If you have a working Fortran compiler setup, you can compile the Mex files yourself with
+A toolbox for fast and accurate computations using M-matrices in Matlab, by Bruno Iannazzo, Mehdi Najafi-Kalyani, and Federico Poloni.
+
+## Installation
+
+To install the toolbox, download the source files from the [Releases page](https://github.com/numpi/mmatrix/releases/) into a folder, and add that folder to the Matlab search path.
+
+If you have a working Fortran compiler set up on your computer to use with Matlab, you can compile the Mex files yourself with
 ```matlab
 >> build_mex
 ```
-Otherwise, you can download pre-compiled Linux and Windows versions from [here](https://github.com/numpi/mmatrix/releases/). Unzip the files in the `+mmex` folder to use them.
+Otherwise, you can download pre-compiled versions for Windows and Linux from the [Releases page](https://github.com/numpi/mmatrix/releases/). (Producing a pre-compiled version for Mac is more complicated, unfortunately, since Matlab does not support building Mex-files using GFortran on Mac machines.) Download the `mex-???.zip` file that matches your operating system, and unzip its contents into the `+mmex` folder.
 
-To run automated tests and check everything is working:
+After installation, you can run the automated tests to check everything is working:
 ```matlab
 >> runtests('tests/');
 ```
 
-To run a more detailed interactive demo:
-```matlab
->> main_matlab
-```
+### Automated installation inside Matlab
 
-To download and install the toolbox directly from GitHub, run:
+To download and install the most recent development version of the toolbox automatically, you can also run:
 
 ```matlab
 unzip('https://github.com/numpi/mmatrix/archive/main.zip');
@@ -25,7 +28,7 @@ addpath(fullfile('mmatrix-toolbox'));
 savepath;
 ```
 
-### Descriptions of the variants:
+### Descriptions of the Fortran files
 
 #### Right triplet algorithms:
 
