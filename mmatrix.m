@@ -307,6 +307,13 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         % Smallest Eigenvalue of a Diagonally Dominant M-Matrix,"
         % Mathematics of Computation, Vol. 71, No. 237, pp. 217–236, 2001.
 
+            if all(obj.v == 0)
+                lambda = 0;
+                u = obj.u;
+                iter = 0;
+                return
+            end
+
             if nargin < 2 || isempty(tol)
                 tol = 100*eps;
             end
