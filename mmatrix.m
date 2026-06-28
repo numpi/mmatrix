@@ -405,7 +405,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             Z = (1/2) * (eye(n) + M);
             p = M.v;
             for ell = 1:opts.maxit
-                [L, U] = lumatlab(Z);
+                [L, U] = lu(Z);
                 p = p + 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
                 W = 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
                 Z = mmatrix(Z.M - 1/2 * W, M.u, p + 1/2 * W * M.u);
