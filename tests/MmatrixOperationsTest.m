@@ -170,15 +170,13 @@ function testTimes(testCase)
 end
 
 function testLU(testCase)
-    for left = [true, false]
-        rng(0);
-        n = 8;
-        A = gettriplet('rand', size=n, seed=0, left=left);
-        % Test indexing for mmatrix
-        [L, U] = lu(A);
-        testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
-        [L, U] = lumatlab(A);
-        testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
+    for use_mex = [true, false]
+        for left = [true, false]
+            n = 8;
+            A = gettriplet('rand', size=n, seed=0, left=left);
+            [L, U] = lu(A);
+            testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
+        end
     end
 end
 

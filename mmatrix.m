@@ -129,73 +129,26 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
 
     methods % algorithms
         %------------------------------------------------------------------
-        function [L, U] = lu(obj)
+        function [L, U] = lu(obj, opts)
             % [L, U] = lu(M)
             % compute the LU factorization of the triplet mmatrix with
             % the GTH algorithm implemented in Fortran
             % M: triplet mmatrix
             % L, U: factors of the LU factorization
-            if obj.left
-                U = mmex.dmltrff(obj.M, obj.u, obj.v);
-            else
-                U = mmex.dmmtrff(obj.M, obj.u, obj.v);
+            arguments
+                obj
+                opts.use_mex (1,1) logical = true
             end
-            L = tril(U,-1) + eye(obj.n);
-            U = triu(U);
-        end
-        %------------------------------------------------------------------
-        function [L, U] = lumatlab(obj)
-            % [L, U] = lumatlab(M)
-            % Form the LU factorization of M using pure MATLAB
-            % M: triplet mmatrix
-            % L, U: factors
-                        
-            n = obj.n;
-            if obj.left
-                L = eye(n); 
-                U = obj.M;
-                u = obj.u;
-                v = obj.v;
-
-                for j = 1:n-1
-                    pivot = (v(1, j) - u(1, j+1:n) * U(j+1:n, j)) / u(1, j);
-                    U(j, j) = pivot;
-                    L(j+1:n, j) = U(j+1:n, j) / pivot;
-                    U(j+1:n, j) = 0;
-                    v(1, j+1:n) = v(1, j+1:n) - v(1, j)/pivot * U(j, j+1:n);
-                    U(j+1:n, j+1:n) = U(j+1:n, j+1:n) - ...
-                                      L(j+1:n, j) * U(j, j+1:n);
+            if opts.use_mex
+                if obj.left
+                    U = mmex.dmltrff(obj.M, obj.u, obj.v);
+                else
+                    U = mmex.dmmtrff(obj.M, obj.u, obj.v);
                 end
-                U(n, n) = v(1, n) / u(1, n);
+                L = tril(U,-1) + eye(obj.n);
+                U = triu(U);
             else
-                L = eye(n);
-                U = obj.M;
-                u = obj.u;
-                v = obj.v;
-                for j = 1:n-1
-                    pivot = (v(j) - U(j, j+1:n) * u(j+1:n)) / u(j);
-                    U(j, j) = pivot;
-                    L(j+1:n, j) = U(j+1:n, j) / pivot;
-                    U(j+1:n, j) = 0;
-                    v(j+1:n) = v(j+1:n) - L(j+1:n, j) * v(j);
-                    U(j+1:n, j+1:n) = U(j+1:n, j+1:n) - ...
-                                      L(j+1:n, j) * U(j, j+1:n); 
-                    % will write inaccurate values on the diagonal, 
-                    % but we don't care since we'll never use them
-                end
-                U(n, n) = v(n) / u(n);
-            end
-        end
-        %------------------------------------------------------------------
-        function [L, U] = lumatlabold(obj)
-            % [L, U] = lu(M)
-            % Form the LU factorization of M
-            % M: triplet mmatrix
-            % L, U: factors
-            if obj.left
-                [L, U] = gthlu(obj.M, obj.u, obj.v,'left');
-            else
-                [L, U] = gthlu(obj.M, obj.u, obj.v);
+                [L, U] = gthlu(obj.M, obj.u, obj.v, obj.left);
             end
         end
         %------------------------------------------------------------------
@@ -387,9 +340,11 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 opts.gamma = 1.5
                 opts.maxit = 100
                 opts.tol = 1d-20
+                opts.use_mex (1,1) logical = true
             end
 
             if M.left
+                % calls sqrtm(M') with the same arguments
                 nv = namedargs2cell(opts);
                 [B, out] = sqrtm(M', nv{:});
                 B = B';
@@ -405,7 +360,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
             Z = (1/2) * (eye(n) + M);
             p = M.v;
             for ell = 1:opts.maxit
-                [L, U] = lu(Z);
+                [L, U] = lu(Z, use_mex=opts.use_mex);
                 p = p + 1/2 * W * (U\(L\p)); % p yields the triplet vector v of Z
                 W = 1/4 * W * (U\(L\W)); % W is the update on the off-diagonal
                 Z = mmatrix(Z.M - 1/2 * W, M.u, p + 1/2 * W * M.u);
