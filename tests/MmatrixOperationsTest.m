@@ -175,7 +175,10 @@ function testLU(testCase)
             n = 8;
             A = gettriplet('rand', size=n, seed=0, left=left);
             [L, U] = lu(A);
-            testCase.verifyEqual(double(A), L*U, RelTol=1e-9);        
+            testCase.verifyEqual(double(A), L*U, RelTol=1e-9);
+            testCase.verifyEqual(L, tril(L));
+            testCase.verifyEqual(diag(L), ones(n,1));
+            testCase.verifyEqual(U, triu(U));
         end
     end
 end

@@ -9,7 +9,6 @@
 %                        dmltrf (blocked), dmltrff (blocked recursive)
 %
 
-clc;
 fprintf('The condition number varies with σ = 10^{-k} for k = 1 to 12.\n\n');
 
 % Problem parameters
@@ -44,7 +43,7 @@ for k = 1:nt
     conds(k) = cond(A);
 
     % GTH with right triplet
-    [L,U] = gthlu(A,u,v); x = U\(L\b);
+    [L,U] = lu_matlab(A,u,v); x = U\(L\b);
     nrm_gth(k)  = norm(x-x_exact)/norm(x_exact);
     comp_gth(k) = max(abs(x-x_exact)./x_exact);
 

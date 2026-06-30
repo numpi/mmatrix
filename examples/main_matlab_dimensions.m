@@ -1,9 +1,6 @@
 function main_matlab_dimensions()
 % Compare factorization methods for ONE sigma and varying dimensions
 
-build_mex();
-clc;
-
 fprintf('Fixed sigma, varying matrix dimension n.\n\n');
 
 %  ------------------- PARAMETERS -------------------
@@ -80,7 +77,7 @@ end
 
 %------------------------------------------------------------------- 
 function [time, rel_error] = run_gthlu(A, b, x_exact, v, w)
-tic;[L, U] = gthlu(A, v, w);time = toc;
+tic;[L, U] = lu_matlab(A, v, w);time = toc;
 x = U \ (L \ b);rel_error = norm(x - x_exact) / norm(x_exact);
 end
 

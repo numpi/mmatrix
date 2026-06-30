@@ -148,7 +148,7 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
                 L = tril(U,-1) + eye(obj.n);
                 U = triu(U);
             else
-                [L, U] = gthlu(obj.M, obj.u, obj.v, obj.left);
+                [L, U] = lu_matlab(obj.M, obj.u, obj.v, obj.left);
             end
         end
         %------------------------------------------------------------------

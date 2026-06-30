@@ -10,7 +10,7 @@ Mr = gettriplet('rand', size=n, left=false, seed=1);
 % Run all factorizations:
 % left case-----------------------------------------------------------
 % gth which corresponds to dmltf2
-[L,U] = gthlu(Ml.M, Ml.u, Ml.v, 'left');
+[L,U] = lu_matlab(Ml.M, Ml.u, Ml.v, left=true);
 err_gth_left = norm(L*U - double(Ml), 'fro');
 
 %Recursive blocked gth which corresponds to dmltrf2
@@ -26,7 +26,7 @@ err_bgth_left = norm(L*U - double(Ml), 'fro');
 err_rbgth_left = norm(L*U - double(Ml), 'fro');
 % right case-----------------------------------------------------------
 % gth which corresponds to dmmtf2
-[L,U] = gthlu(Mr.M, Mr.u, Mr.v);
+[L,U] = lu_matlab(Mr.M, Mr.u, Mr.v);
 err_gth_right = norm(L*U - double(Mr), 'fro');
 
 %Recursive blocked gth which corresponds to dmmtrf2
@@ -87,7 +87,7 @@ function [L,U] = blocked_gthlu_left(M, v, w, nb)
         else
             w_hat = w(I) - v(J) * M(J,I);
         end
-        [L11,U11] = gthlu(M(I,I), v(I), w_hat, 'left');
+        [L11,U11] = lu_matlab(M(I,I), v(I), w_hat, left=true);
         L(I,I) = L11;
         U(I,I) = U11;
         if isempty(J), continue; end
@@ -171,7 +171,7 @@ function [L,U] = blocked_gthlu_right(M, v, w, nb)
         else
             w_hat = w(I) - M(I,J) * v(J);
         end
-        [L11,U11] = gthlu(M(I,I), v(I), w_hat);
+        [L11,U11] = lu_matlab(M(I,I), v(I), w_hat);
         L(I,I) = L11;
         U(I,I) = U11;
         if isempty(J), continue; end

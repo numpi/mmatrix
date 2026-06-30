@@ -8,13 +8,13 @@ import matlab.unittest.fixtures.PathFixture
 testCase.applyFixture(PathFixture('..'));
 end
 
-function testGthLU(testCase)
+function testLUMatlab(testCase)
     rng(0);
     n = 4;
     M = gettriplet('rand', size=n);
     A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = nan; % sets diagonal to NaN to make sure we are not cheating
-    [L, U, ww] = gthlu(A0, v, w);
+    [L, U, ww] = lu_matlab(A0, v, w);
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
     testCase.verifyEqual(L, tril(L));
     testCase.verifyEqual(diag(L), ones(n,1));
@@ -24,7 +24,7 @@ function testGthLU(testCase)
     M = gettriplet('rand', size=n, left=true);
     A = M.M; v = M.u; w = M.v;
     A0 = A; A0(1:n+1:end) = 0;
-    [L, U, ww] = gthlu(A0, v, w, 'left');
+    [L, U, ww] = lu_matlab(A0, v, w, left=true);
     testCase.verifyEqual(L*U, A, RelTol=1e-9);
     testCase.verifyEqual(diag(L), ones(n,1));
     testCase.verifyEqual(ww, w / U);
