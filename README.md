@@ -1,6 +1,8 @@
 # MMatrix Matlab toolbox
 
-A toolbox for fast and accurate computations using M-matrices in Matlab, by Bruno Iannazzo, Mehdi Najafi-Kalyani, and Federico Poloni.
+A toolbox for fast and accurate computations using M-matrices in Matlab, by Bruno Iannazzo, Mehdi Najafi-Kalyani, and Federico Poloni. The toolbox is described in
+
+> **The mmatrix toolbox: componentwise accurate algorithms for M-matrices with triplet representation**, Bruno Iannazzo, Mehdi Najafi Kalyani, Federico Poloni, [arXiv:2607.05437](https://arxiv.org/abs/2607.05437).
 
 ## Installation
 
