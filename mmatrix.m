@@ -373,7 +373,117 @@ classdef mmatrix <  matlab.mixin.indexing.RedefinesParen
         end
 
     end
+    %----------------------------------------------------------------------
+    methods (Static)
 
+    function [G, history] = qbd(A0, A1, A2, opts)
+        % Logarithmic reduction for A0 + A1*G + A2*G^2 = G.
+        %
+        % G = mmatrix.qbd(A0, A1, A2)
+        % [G, history] = mmatrix.qbd(A0, A1, A2, maxit=40)
+        % G = mmatrix.qbd(A0, A1, A2, accurate=false)
+        % G = mmatrix.qbd(A0, A1, A2, u=u, v=v)
+        %
+        % Inputs:
+        %   A0, A1, A2: nonnegative square matrices of the same size.
+        %   u, v: vectors satisfying  u > 0, v >= 0, and (I-A0-A1-A2)*u = v.
+        %
+        % Defaults u = ones(n,1), v = zeros(n,1) assume that A0+A1+A2 is row stochastic.
+        %
+        % accurate=true  uses the triplet-based GTH-like.
+        % accurate=false uses MATLAB's standard linear solver.
+        %
+        % The method performs maxit LR updates after initialisation.
+        % history{k+1} contains the iterate G_k.
+        %
+        % Reference:
+        % Guiding Gu, Li Wang and Ren-Cang Li,
+        % Highly Accurate Latouche-Ramaswami Logarithmic Reduction
+        % Algorithm for Quasi-Birth-and-Death Process,
+        % Journal of Mathematical Study, 55 (2022), 180-194.
+        % Algorithms 3.1 and 4.1.
+
+        arguments
+            A0
+            A1
+            A2
+            opts.u = []
+            opts.v = []
+            opts.maxit (1,1) double ...
+                {mustBeInteger, mustBeNonnegative} = 40
+            opts.accurate (1,1) logical = true
+            opts.use_mex (1,1) logical = true
+        end
+        n = size(A0,1);
+        if n == 0 || ~isequal(size(A0), [n,n]) || ~isequal(size(A1), [n,n]) || ~isequal(size(A2), [n,n])
+            error('mmatrix:qbd', 'A0, A1 and A2 must be nonempty square matrices of the same size.');
+        end
+        if any(A0(:) < 0) || any(A1(:) < 0) || any(A2(:) < 0)
+            error('mmatrix:qbd','A0, A1 and A2 must be nonnegative.');
+        end
+        I = eye(n);
+        % Initial solve.
+        if opts.accurate
+            u = opts.u;
+            v = opts.v;
+            if isempty(u)
+                u = ones(n,1);
+            end
+            if isempty(v)
+                v = zeros(n,1);
+            end
+            u = u(:);
+            v = v(:);
+            if numel(u) ~= n || numel(v) ~= n ||any(u <= 0) || any(v < 0)
+                error('mmatrix:qbd','u and v must have length n, with u > 0 and v >= 0.');
+            end
+            % Triplet representation of I-A1.
+            M = mmatrix(-A1, u, v + A0*u + A2*u);
+            [Lf, Uf] = lu(M, use_mex=opts.use_mex);
+            X = Uf \ (Lf \ [A0, A2, v]);
+            L = X(:,1:n);
+            H = X(:,n+1:2*n);
+            w = X(:,end);
+            p = w + (H+L)*w;
+        else
+            X = (I-A1) \ [A0, A2];
+            L = X(:,1:n);
+            H = X(:,n+1:2*n);
+        end
+        G = L;
+        T = H;
+        history = {};
+        if nargout > 1
+            history = cell(opts.maxit+1,1);
+            history{1} = G;
+        end
+        % LR updates
+        for k = 1:opts.maxit
+            B0 = L*L;
+            B1 = H*L + L*H;
+            B2 = H*H;
+            if opts.accurate
+                % Triplet representation of I-B1.
+                M = mmatrix(-B1, u, p + B0*u + B2*u);
+                [Lf, Uf] = lu(M, use_mex=opts.use_mex);
+                X = Uf \ (Lf \ [B0, B2, p]);
+                L = X(:,1:n);
+                H = X(:,n+1:2*n);
+                w = X(:,end);
+                p = w + (H+L)*w;
+            else
+                X = (I-B1) \ [B0, B2];
+                L = X(:,1:n);
+                H = X(:,n+1:2*n);
+            end
+            G = G + T*L;
+            T = T*H;
+            if nargout > 1
+                history{k+1} = G;
+            end
+        end
+    end
+end
     %----------------------------------------------------------------------
     methods %
         function disp(obj)
