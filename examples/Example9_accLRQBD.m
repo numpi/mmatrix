@@ -31,12 +31,15 @@ end
 A0hp = (-P1) \ P0;A2hp = (-P1) \ P2;
 
 % Compute the high-precision solution
-Gref = mmatrix.qbd(A0hp, A2hp,maxit=80, accurate=false);
+A1hp = vpa(zeros(n));
+Gref = mmatrix.qbd(A0hp, A1hp, A2hp,maxit=80, accurate=false);
+
+% Double-precision coefficients
+A0 = double(A0hp);A1 = zeros(n);A2 = double(A2hp);
 
 % Run both algorithms in double precision
-A0 = double(A0hp);A2 = double(A2hp);
-[~, historyLR] = mmatrix.qbd(A0, A2,maxit=maxit, accurate=false);
-[~, historyGTH] = mmatrix.qbd(A0, A2, maxit=maxit, accurate=true);
+[~, historyLR] = mmatrix.qbd(A0, A1, A2, maxit=maxit, accurate=false);
+[~, historyGTH] = mmatrix.qbd(A0, A1, A2, maxit=maxit, accurate=true);
 % Compute errors
 errorLR  = zeros(maxit+1,2);errorGTH = zeros(maxit+1,2);
 for j = 1:maxit+1
